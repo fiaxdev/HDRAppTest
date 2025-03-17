@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">HDR</string>
+
+    <!-- Bluetooth -->
+    <string name="app_uuid">9b7ac9e8-4b6f-4805-be75-2372d61fea9c</string>
+
+    <!-- Routes -->
+    <string name="home">Home</string>
+    <string name="nfc">NFC</string>
+
+    <!-- Home Screen -->
+    <string name="write_nfc">Write to NFC</string>
+    <string name="enter_message">Enter message</string>
+    <string name="write_nfc_button">Write to NFC Tag</string>
+    <string name="go_to_read_screen">Go to Read Screen</string>
+
+    <!-- Read Screen -->
+    <string name="read_nfc">Read NFC Data</string>
+    <string name="message">Message:</string>
+    <string name="back_to_home">Back to Home</string>
+
+    <!-- Toast Messages -->
+    <string name="nfc_write_success">NFC Tag Written!</string>
+    <string name="nfc_read_success">Read from NFC:</string>
+    <string name="nfc_write_fail">Failed to write NFC tag</string>
+    <string name="nfc_read_fail">Failed to read NFC tag</string>
+    <string name="nfc_tap_to_write">Tap NFC tag to write!</string>
+    <string name="nfc_read_only">NFC Tag is read-only</string>
+    <string name="nfc_not_supported">NFC Tag is not NDEF-compatible</string>
+
+
+</resources>
