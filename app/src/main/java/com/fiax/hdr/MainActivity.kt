@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.navigation.compose.rememberNavController
+import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.nfc.NfcCustomManager
 import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     //Bluetooth
     private lateinit var bluetoothViewModel: BluetoothViewModel
+    private lateinit var bluetoothCustomManager: BluetoothCustomManager
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -54,23 +56,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Define an ActivityResultLauncher for enabling Bluetooth
+    private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        // Handle the result from Bluetooth enable request
+        bluetoothCustomManager.handleActivityResult(result.resultCode)
+    }
 
     private val bluetoothPermissions = arrayOf(
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_SCAN
     )
 
-    private val enableBluetoothLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                // Bluetooth is enabled
-            } else {
-                // User denied enabling Bluetooth
-            }
-        }
-
     private fun requestBluetoothPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+        if (ActivityCompat.checkSelfPermission(HDRApp.getAppContext(), Manifest.permission.BLUETOOTH_CONNECT)
             != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, bluetoothPermissions, REQUEST_BLUETOOTH_PERMISSION)
@@ -84,7 +82,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        bluetoothViewModel = BluetoothViewModel(this.application)
+        bluetoothCustomManager = BluetoothCustomManager()
+        bluetoothViewModel = BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher)
         setContent {
             HDRTheme {
                 val navController = rememberNavController()
@@ -116,6 +115,11 @@ class MainActivity : ComponentActivity() {
 
         Log.d("MainActivity", "App started")
     }
+
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        bluetoothCustomManager.handleActivityResult(resultCode)
+//    }
 
     override fun onResume() {
         super.onResume()
