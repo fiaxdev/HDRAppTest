@@ -237,6 +237,7 @@ class BluetoothCustomManager {
         }
     }
 
+    // Not tested
     fun sendData(socket: BluetoothSocket, data: String) {
         try {
             val outputStream = socket.outputStream
@@ -248,6 +249,7 @@ class BluetoothCustomManager {
         }
     }
 
+    // Not tested
     fun receiveData(socket: BluetoothSocket): String? {
         return try {
             val inputStream = socket.inputStream
