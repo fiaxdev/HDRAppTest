@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.fiax.hdr.R
 import com.fiax.hdr.ui.components.scaffold.DeviceList
 import com.fiax.hdr.ui.viewmodel.BluetoothViewModel
 import kotlinx.coroutines.launch
@@ -37,7 +38,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
     var receivedMessage by remember { mutableStateOf("") }
     var sendMessage by remember { mutableStateOf("") }
-    var connectionSocket by remember { mutableStateOf<BluetoothSocket?>(null) }
+    val connectionSocket by remember { mutableStateOf<BluetoothSocket?>(null) }
     var isServer by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -89,7 +90,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
             value = sendMessage,
             onValueChange = { sendMessage = it },
             label = { Text("Enter Message") }
-)
+        )
 
         Button(onClick = {
             connectionSocket?.let { bluetoothViewModel.sendData(it, sendMessage) }
@@ -99,11 +100,13 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            connectionSocket?.let {
-                receivedMessage = bluetoothViewModel.receiveData(it) ?: "No message received"
+        Button(
+            onClick = {
+                connectionSocket?.let {
+                    receivedMessage = bluetoothViewModel.receiveData(it) ?: "No message received"
+                }
             }
-        }) {
+        ) {
             Text("Receive Message")
         }
 
@@ -125,7 +128,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
                         bluetoothViewModel.stopDiscovery()
                 }
                 else{                                           // Missing Bluetooth permissions
-                    Toast.makeText(context, "Missing Bluetooth permissions", Toast.LENGTH_SHORT).show()
+                    bluetoothViewModel.updateToastMessage(context.resources.getString(R.string.missing_bluetooth_permissions))
                 }
             }
         )
