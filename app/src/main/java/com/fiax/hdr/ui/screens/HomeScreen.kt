@@ -93,22 +93,22 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
         )
 
         Button(onClick = {
-            connectionSocket?.let { bluetoothViewModel.sendData(it, sendMessage) }
+            connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
         }) {
             Text("Send Message")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                connectionSocket?.let {
-                    receivedMessage = bluetoothViewModel.receiveData(it) ?: "No message received"
-                }
-            }
-        ) {
-            Text("Receive Message")
-        }
+//        Button(
+//            onClick = {
+//                connectionSocket?.let {
+//                    receivedMessage = bluetoothViewModel.receiveData(it) ?: "No message received"
+//                }
+//            }
+//        ) {
+//            Text("Receive Message")
+//        }
 
         Text("Received: $receivedMessage", fontSize = 16.sp)
 

@@ -49,6 +49,9 @@ class BluetoothViewModel(private val bluetoothCustomManager: BluetoothCustomMana
     private val _toastMessage = MutableStateFlow("")
     val toastMessage: StateFlow<String> = _toastMessage
 
+    private val _receivedMessages = MutableStateFlow("")
+    val receivedMessages: StateFlow<String> = _receivedMessages
+
     //---------------------------------------Variables managing----------------------------------------------------
 
     // Update state when discovery stops (register receiver in Activity)
@@ -141,6 +144,7 @@ class BluetoothViewModel(private val bluetoothCustomManager: BluetoothCustomMana
                         withContext(Dispatchers.Main) {
                             if (socket != null) {
                                 Log.d("BluetoothViewModel", "Bluetooth server started successfully")
+                                startListeningForMessages(socket)
                                 updateServerStatus(true)
                                 updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
                             } else {
@@ -174,26 +178,18 @@ class BluetoothViewModel(private val bluetoothCustomManager: BluetoothCustomMana
         return bluetoothCustomManager.isBluetoothEnabled()
     }
 
-    fun sendData(socket: BluetoothSocket, data: String) {
-        ensureBluetoothEnabled(
-            onEnabled = {
-                bluetoothCustomManager.sendData(socket, data)
-            },
-            onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
-            onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
-        )
+    fun sendMessage(socket: BluetoothSocket, message: String) {
+        viewModelScope.launch {
+            bluetoothCustomManager.sendData(socket, message)
+        }
     }
 
-    fun receiveData(socket: BluetoothSocket): String? {
-        var data: String? = null
-        ensureBluetoothEnabled(
-            onEnabled = {
-                data = bluetoothCustomManager.receiveData(socket)
-            },
-            onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
-            onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
-        )
-        return data
+    fun startListeningForMessages(socket: BluetoothSocket) {
+        bluetoothCustomManager.listenForData(socket) { message ->
+            viewModelScope.launch {
+                _receivedMessages.value += message  // Update UI
+            }
+        }
     }
 
     fun hasBluetoothPermissions(): Boolean {

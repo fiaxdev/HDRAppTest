@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
+import kotlin.concurrent.thread
 
 class BluetoothCustomManager {
 
@@ -199,6 +200,7 @@ class BluetoothCustomManager {
                 socket.connect()
                 Log.d("BluetoothClient", "Connected to server!")
 
+
                 socket // Return the connected socket
             } catch (e: SecurityException) {
                 Log.e("BluetoothClient", "Permission denied: ${e.message}")
@@ -238,31 +240,33 @@ class BluetoothCustomManager {
     }
 
     // Not tested
-    fun sendData(socket: BluetoothSocket, data: String) {
+    fun sendData(socket: BluetoothSocket, message: String) {
         try {
             val outputStream = socket.outputStream
-            outputStream.write(data.toByteArray())
+            outputStream.write(message.toByteArray(Charsets.UTF_8))
             outputStream.flush()
-            Log.d("BluetoothServer", "Sent: $data")
+            Log.d("Bluetooth", "Message sent: $message")
         } catch (e: IOException) {
-            Log.e("BluetoothServer", "Error sending data: ${e.message}")
+            Log.e("Bluetooth", "Error sending data: ${e.message}")
         }
     }
 
-    // Not tested
-    fun receiveData(socket: BluetoothSocket): String? {
-        return try {
-            val inputStream = socket.inputStream
-            val buffer = ByteArray(1024)
-            val bytesRead = inputStream.read(buffer)
-            val receivedMessage = String(buffer, 0, bytesRead)
-            Log.d("BluetoothServer", "Received: $receivedMessage")
-            receivedMessage
-        } catch (e: IOException) {
-            Log.e("BluetoothServer", "Error receiving data: ${e.message}")
-            null
+    fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit) {
+        thread {
+            try {
+                val inputStream = socket.inputStream
+                val buffer = ByteArray(1024)
+                while (true) {
+                    val bytesRead = inputStream.read(buffer)
+                    val receivedMessage = String(buffer, 0, bytesRead, Charsets.UTF_8)
+                    onMessageReceived(receivedMessage)  // Callback to ViewModel
+                }
+            } catch (e: IOException) {
+                Log.e("Bluetooth", "Error receiving data: ${e.message}")
+            }
         }
     }
+
 
 //    fun getBondedDevices(): Set<BluetoothDevice>? {
 //        val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
