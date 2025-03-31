@@ -8,26 +8,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.fiax.hdr.R
 import com.fiax.hdr.ui.screens.HomeScreen
-import com.fiax.hdr.ui.screens.NfcScreen
-import com.fiax.hdr.ui.viewmodel.BluetoothViewModel
-import com.fiax.hdr.ui.viewmodel.NfcViewModel
+import com.fiax.hdr.viewmodel.BluetoothViewModel
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
-    data object NFC : Screen("nfc")
 }
 
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    nfcViewModel: NfcViewModel,
     bluetoothViewModel: BluetoothViewModel,
     modifier: Modifier = Modifier
 ) {
 
     NavHost(navController = navController, startDestination = stringResource(R.string.home), modifier = modifier) {
         composable(Screen.Home.route){ HomeScreen(bluetoothViewModel) }
-        composable(Screen.NFC.route) { NfcScreen(nfcViewModel) }
     }
 }
 

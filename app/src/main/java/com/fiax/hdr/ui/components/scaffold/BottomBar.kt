@@ -1,7 +1,6 @@
 package com.fiax.hdr.ui.components.scaffold
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -18,12 +17,6 @@ fun BottomBar(navController: NavHostController) {
             label = { Text("Home") },
             selected = navController.currentDestination?.route == "home",
             onClick = { navController.navigate("home") }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Contactless, contentDescription = "NFC") },
-            label = { Text("NFC") },
-            selected = navController.currentDestination?.route == "nfc",
-            onClick = { navController.navigate("nfc") }
         )
     }
 }

@@ -1,8 +1,6 @@
 package com.fiax.hdr.ui.screens
 
-import android.Manifest
 import android.bluetooth.BluetoothSocket
-import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -28,25 +26,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import com.fiax.hdr.R
 import com.fiax.hdr.ui.components.scaffold.DeviceList
-import com.fiax.hdr.ui.viewmodel.BluetoothViewModel
+import com.fiax.hdr.viewmodel.BluetoothViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
-    var receivedMessage by remember { mutableStateOf("") }
+
     var sendMessage by remember { mutableStateOf("") }
     val connectionSocket by remember { mutableStateOf<BluetoothSocket?>(null) }
-    var isServer by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-
+    val isServer by bluetoothViewModel.isServerOn.collectAsState()
     val isScanning by bluetoothViewModel.isDiscovering.collectAsState()
     val toastMessage by bluetoothViewModel.toastMessage.collectAsState()
+    val receivedMessage by bluetoothViewModel.receivedMessages.collectAsState()
 
     LaunchedEffect(toastMessage) {
         if (toastMessage.isNotEmpty()) {
@@ -71,8 +67,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
             onClick = {
                 Log.d("HomeScreen", "Button clicked. isServer: $isServer")
                 coroutineScope.launch {
-                    isServer = !isServer
-                    if (!isServer) {
+                    if (isServer) {
                         bluetoothViewModel.stopServer()
                     } else {
                         bluetoothViewModel.startServer()
@@ -100,16 +95,6 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-//        Button(
-//            onClick = {
-//                connectionSocket?.let {
-//                    receivedMessage = bluetoothViewModel.receiveData(it) ?: "No message received"
-//                }
-//            }
-//        ) {
-//            Text("Receive Message")
-//        }
-
         Text("Received: $receivedMessage", fontSize = 16.sp)
 
         HorizontalDivider()
@@ -118,27 +103,19 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
         Button(
             onClick = {
-                if (ContextCompat.checkSelfPermission(          // Bluetooth permissions granted
-                        context, Manifest.permission.BLUETOOTH_CONNECT
-                    ) == PackageManager.PERMISSION_GRANTED){
-
-                    if (!isScanning)
-                        bluetoothViewModel.startDiscovery()
-                    else
-                        bluetoothViewModel.stopDiscovery()
-                }
-                else{                                           // Missing Bluetooth permissions
-                    bluetoothViewModel.updateToastMessage(context.resources.getString(R.string.missing_bluetooth_permissions))
-                }
+                if (!isScanning)
+                    bluetoothViewModel.startDiscovery()
+                else
+                    bluetoothViewModel.stopDiscovery()
             }
-        )
-        {
+        ) {
             Text(
                 if (isScanning) "Stop Scanning" else "Start Scanning"
             )
         }
 
         DeviceList(bluetoothViewModel)
+
     }
 }
 

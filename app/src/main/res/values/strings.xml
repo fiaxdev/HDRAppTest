@@ -34,6 +34,7 @@
     <string name="bluetooth_server_started">Server started</string>
     <string name="bluetooth_server_stopped">Server was stopped</string>
     <string name="missing_bluetooth_permissions">Missing Bluetooth permissions\n</string>
+    <string name="bluetooth_missing_permissions">Missing necessary bluetooth permissions</string>
 
 
 </resources>

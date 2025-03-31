@@ -1,7 +1,7 @@
 package com.fiax.hdr.data.bluetooth
 
 import android.Manifest
-import android.app.Activity
+import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,16 +10,14 @@ import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
-import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
+import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -39,43 +37,59 @@ class BluetoothCustomManager {
     private val APP_NAME = appContext.getString(R.string.app_name)
     private val APP_UUID = UUID.fromString(appContext.getString(R.string.app_uuid))
     private val SerialConnectionUUID = UUID.fromString(appContext.getString(R.string.serial_connection_uuid))
-    private val REQUEST_BLUETOOTH_PERMISSION = 1
 
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
         enableBluetoothLauncher: ActivityResultLauncher<Intent>,
         onEnabled: () -> Unit,
         onDenied: () -> Unit,
-        onNotSupported: () -> Unit
+        onNotSupported: () -> Unit,
+        onMissingPermission: () -> Unit,
     ) {
         if (bluetoothAdapter == null) {
             onNotSupported()
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ContextCompat.checkSelfPermission(
-                    appContext, Manifest.permission.BLUETOOTH_CONNECT
-                ) == PackageManager.PERMISSION_GRANTED){
-                    if (!bluetoothAdapter!!.isEnabled) {
-                        // Bluetooth is not enabled, request to enable it
-                        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                        // Launch the intent to enable Bluetooth
-                        enableBluetoothLauncher.launch(enableBtIntent)
-                        // Save the callback to be used when the result is received
-                        bluetoothEnableCallback = object : BluetoothEnableCallback {
-                            override fun onBluetoothEnabled() {
-                                onEnabled()
-                            }
 
-                            override fun onBluetoothDenied() {
-                                onDenied()
-                            }
+            if (PermissionHelper.hasPermissions(context = appContext)){
+                if (!bluetoothAdapter!!.isEnabled) {
+                    // Bluetooth is not enabled, request to enable it
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    // Launch the intent to enable Bluetooth
+                    enableBluetoothLauncher.launch(enableBtIntent)
+                    // Save the callback to be used when the result is received
+                    bluetoothEnableCallback = object : BluetoothEnableCallback {
+                        override fun onBluetoothEnabled() {
+                            onEnabled()
                         }
-                    } else {
-                        // Bluetooth is already enabled
-                        onEnabled()
+
+                        override fun onBluetoothDenied() {
+                            onDenied()
+                        }
                     }
+                } else
+                    onEnabled()
+            } else
+                onMissingPermission()
+        }
+    }
+
+    fun ensurePermissions(
+        requestPermissionsLauncher: ActivityResultLauncher<Array<String>>,
+        onGranted: () -> Unit,
+        onDenied: () -> Unit
+    ) {
+        if (PermissionHelper.hasPermissions(appContext)) {
+            onGranted()
+        } else {
+            permissionsRequestCallback = object : PermissionsRequestCallback {
+                override fun onPermissionsGranted() {
+                    onGranted()
+                }
+                override fun onPermissionsDenied() {
+                    onDenied()
                 }
             }
+            requestPermissionsLauncher.launch(PermissionHelper.getRequiredPermissions())
         }
     }
 
@@ -93,51 +107,19 @@ class BluetoothCustomManager {
         fun onBluetoothDenied()
     }
 
+    interface PermissionsRequestCallback {
+        fun onPermissionsGranted()
+        fun onPermissionsDenied()
+    }
+
     private var bluetoothEnableCallback: BluetoothEnableCallback? = null
-
-    companion object {
-        const val REQUEST_ENABLE_BT = 1
-    }
-
-    fun hasBluetoothPermissions(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(
-                appContext, Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-    }
+    private var permissionsRequestCallback: PermissionsRequestCallback? = null
 
     fun isBluetoothEnabled(): Boolean {
-//        val bluetoothAdapter = (appContext.getSystemService(BluetoothManager::class.java))?.adapter
         return bluetoothAdapter?.isEnabled == true
     }
 
-    fun requestEnableBluetooth() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(
-                appContext, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED)
-                if (!isBluetoothEnabled()) {
-                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                    appContext.startActivity(enableBtIntent)
-                }
-        }
-    }
-
     suspend fun startBluetoothServer(): BluetoothSocket? {
-        if (!hasBluetoothPermissions()) {
-            Log.e("BluetoothServer", "Missing Bluetooth permissions")
-            return null
-        }
-
-        if (bluetoothAdapter == null) {
-            Log.e("BluetoothServer", "Bluetooth is not available")
-            requestEnableBluetooth()
-            return null
-        }
-
         val server: BluetoothServerSocket? = try {
             bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
                 APP_NAME,
@@ -158,12 +140,6 @@ class BluetoothCustomManager {
             try {
                 val socket = serverSocket?.accept()
                 connectedSocket = socket
-                if (ContextCompat.checkSelfPermission(
-                        appContext, Manifest.permission.BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED){
-                    Log.e("BluetoothServer", "Missing Bluetooth permissions")
-                }
-                Log.d("BluetoothServer", "Device connected: ${socket?.remoteDevice?.name}")
                 socket
             } catch (e: IOException) {
                 Log.e("BluetoothServer", "Error accepting connection: ${e.message}")
@@ -186,7 +162,7 @@ class BluetoothCustomManager {
     }
 
     suspend fun connectToServer(device: BluetoothDevice): BluetoothSocket? {
-        if (!hasBluetoothPermissions()) {
+        if (!PermissionHelper.hasPermissions(context = appContext)) {
             Log.e("BluetoothClient", "Missing Bluetooth permissions")
             return null
         }
@@ -212,20 +188,15 @@ class BluetoothCustomManager {
         }
     }
 
+    @SuppressLint("MissingPermission")
     fun startDiscovery() {
-        if (ContextCompat.checkSelfPermission(
-                appContext, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED){
-            Log.e("StartDiscovery", "Missing Bluetooth permissions")
-        } else {
-            if (bluetoothAdapter?.isDiscovering == true) {
-                bluetoothAdapter?.cancelDiscovery()
-                Handler(Looper.getMainLooper()).postDelayed({
-                    bluetoothAdapter?.startDiscovery()
-                }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
-            } else
+        if (bluetoothAdapter?.isDiscovering == true) {
+            bluetoothAdapter?.cancelDiscovery()
+            Handler(Looper.getMainLooper()).postDelayed({
                 bluetoothAdapter?.startDiscovery()
-        }
+            }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
+        } else
+            bluetoothAdapter?.startDiscovery()
     }
 
     // Stop discovery
@@ -239,7 +210,6 @@ class BluetoothCustomManager {
         }
     }
 
-    // Not tested
     fun sendData(socket: BluetoothSocket, message: String) {
         try {
             val outputStream = socket.outputStream
@@ -280,14 +250,22 @@ class BluetoothCustomManager {
         return bluetoothAdapter != null
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    private fun requestBluetoothPermissions() {
-        ActivityCompat.requestPermissions(
-            appContext as Activity,
-            arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-            REQUEST_BLUETOOTH_PERMISSION
-        )
+    fun handlePermissionsResult(allGranted: Boolean){
+        if (allGranted) {
+            permissionsRequestCallback?.onPermissionsGranted()
+        } else {
+            permissionsRequestCallback?.onPermissionsDenied()
+        }
     }
+
+//    @RequiresApi(Build.VERSION_CODES.S)
+//    private fun requestBluetoothPermissions() {
+//        ActivityCompat.requestPermissions(
+//            appContext as Activity,
+//            arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+//            REQUEST_BLUETOOTH_PERMISSION
+//        )
+//    }
 }
 
 
