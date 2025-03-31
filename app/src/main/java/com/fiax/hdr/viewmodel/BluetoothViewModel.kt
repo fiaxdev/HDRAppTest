@@ -1,9 +1,9 @@
 package com.fiax.hdr.viewmodel
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
@@ -26,7 +26,6 @@ import kotlin.coroutines.suspendCoroutine
 class BluetoothViewModel(
     private val bluetoothCustomManager: BluetoothCustomManager,
     private val enableBluetoothLauncher: ActivityResultLauncher<Intent>,
-    private val requestPermissionLauncher: ActivityResultLauncher<Array<String>>,
 ): ViewModel()  {
 
     private val appContext = HDRApp.getAppContext()
@@ -56,6 +55,9 @@ class BluetoothViewModel(
     private val _receivedMessages = MutableStateFlow("")
     val receivedMessages: StateFlow<String> = _receivedMessages
 
+    private val _hasPermissions = MutableStateFlow(false)
+    val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
+
 //---------------------------------------Variables managing----------------------------------------------------
 
     // Update state when discovery stops (register receiver in Activity)
@@ -68,7 +70,7 @@ class BluetoothViewModel(
         _toastMessage.value = ""
     }
 
-    fun updateToastMessage(message: String) {
+    private fun updateToastMessage(message: String) {
         _toastMessage.value = message
     }
 
@@ -79,55 +81,39 @@ class BluetoothViewModel(
     }
 
     // Set server status
-    fun updateServerStatus(isServerOn: Boolean) {
+    private fun updateServerStatus(isServerOn: Boolean) {
         Log.d("BluetoothViewModel", "Updating server status to: $isServerOn")
         _isServerOn.value = isServerOn
         Log.d("BluetoothViewModel", "Updated isServerOn: ${_isServerOn.value}")
     }
 
 //---------------------------------------Permissions functionalities-------------------------------------------
-//    fun checkPermissions(context: Context) {
-//        _hasPermissions.value = PermissionHelper.hasPermissions(context)
-//    }
-
-    private fun requestPermissions(activity: Activity) {
-        PermissionHelper.requestPermissions(activity)
+    fun updatePermissions(context: Context) {
+        _hasPermissions.value = PermissionHelper.hasPermissions(context)
     }
-
-//    fun updatePermissions(granted: Boolean) {
-//        _hasPermissions.value = granted
-//    }
-
 //---------------------------------------Bluetooth functionalities---------------------------------------------
 
   //-------------------------------------Discovery------------------------------------------------------------
+
     fun startDiscovery() {
-        ensurePermissions(
-            onGranted = {
-                ensureBluetoothEnabled(
-                    onEnabled = {
-                        bluetoothCustomManager.startDiscovery()
-                        _isDiscovering.value = true
-                    },
-                    onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
-                    onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
-                )
-            }
+        ensureBluetoothEnabled(
+            onEnabled = {
+                bluetoothCustomManager.startDiscovery()
+                _isDiscovering.value = true
+            },
+            onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
+            onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
         )
     }
 
     fun stopDiscovery() {
-        ensurePermissions(
-            onGranted = {
-                ensureBluetoothEnabled(
-                    onEnabled = {
-                        bluetoothCustomManager.stopDiscovery()
-                        _isDiscovering.value = false
-                    },
-                    onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
-                    onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
-                )
-            }
+        ensureBluetoothEnabled(
+            onEnabled = {
+                bluetoothCustomManager.stopDiscovery()
+                _isDiscovering.value = false
+            },
+            onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
+            onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
         )
     }
 
@@ -136,77 +122,77 @@ class BluetoothViewModel(
 
     @SuppressLint("MissingPermission")
     fun connectToDevice(device: BluetoothDevice) {
-        ensurePermissions(
-            onGranted = {
-                ensureBluetoothEnabled(
-                    onEnabled = {
-                        _connectionStatus.value = "Connecting to ${device.name}..."
-                        var socket: BluetoothSocket?
-                        viewModelScope.launch(Dispatchers.IO) {
-                            socket = bluetoothCustomManager.connectToServer(device)
-                            if (socket != null) {
-                                _connectionStatus.value = "Connected to ${device.name}"
-                            } else {
-                                _connectionStatus.value = "Failed to connect to ${device.name}"
-                            }
-                        }
-                    },
-                    onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
-                    onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
-                )
-            }
+
+        ensureBluetoothEnabled(
+            onEnabled = {
+                _connectionStatus.value = "Connecting to ${device.name}..."
+                var socket: BluetoothSocket?
+                viewModelScope.launch(Dispatchers.IO) {
+                    socket = bluetoothCustomManager.connectToServer(device)
+                    if (socket != null) {
+                        _connectionStatus.value = "Connected to ${device.name}"
+                    } else {
+                        _connectionStatus.value = "Failed to connect to ${device.name}"
+                    }
+                }
+            },
+            onDenied = { updateToastMessage(appContext.getString(R.string.bluetooth_denied)) },
+            onNotSupported = { updateToastMessage(appContext.getString(R.string.bluetooth_not_supported)) }
         )
     }
 
     @SuppressLint("MissingPermission")
     suspend fun startServer(): BluetoothSocket? {
-        Log.d("BluetoothViewModel", "startServer() called")
         return suspendCoroutine { continuation ->
-            ensurePermissions(
-                onGranted = {
-                    ensureBluetoothEnabled(
-                        onEnabled = {
-                            viewModelScope.launch(Dispatchers.IO) {
-                                Log.d("BluetoothViewModel", "Starting Bluetooth server")
-                                val socket = bluetoothCustomManager.startBluetoothServer()
-                                Log.d("BluetoothViewModel", "Bluetooth server started")
-                                withContext(Dispatchers.Main) {
-                                    if (socket != null) {
-                                        Log.d(
-                                            "BluetoothViewModel",
-                                            "Bluetooth server started successfully"
-                                        )
-                                        _connectionStatus.value =
-                                            "Connected to ${socket.remoteDevice.name}"
-                                        startListeningForMessages(socket)
-                                        updateServerStatus(true)
-                                        updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
-                                    } else {
-                                        Log.d("BluetoothViewModel", "Bluetooth server failed to start")
-                                        updateServerStatus(false)
-                                        updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
+
+            ensureBluetoothEnabled(
+                onEnabled = {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val serverSocket = bluetoothCustomManager.startBluetoothServer()
+
+                        withContext(Dispatchers.Main) {
+                            if (serverSocket != null) {
+                                updateServerStatus(true) // Update UI instantly
+                                updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
+
+                                // Now wait for a client connection in the background
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    val socket = bluetoothCustomManager.acceptClientConnection()
+                                    withContext(Dispatchers.Main) {
+                                        if (socket != null) {
+                                            _connectionStatus.value = "Connected to ${socket.remoteDevice.name}"
+                                            startListeningForMessages(socket)
+                                        } else {
+                                            updateToastMessage(appContext.getString(R.string.bluetooth_connection_failed))
+                                        }
+                                        continuation.resume(socket)
                                     }
-                                    continuation.resume(socket)
                                 }
+
+                            } else {
+                                updateServerStatus(false)
+                                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
+                                continuation.resume(null)
                             }
-                        },
-                        onDenied = {
-                            updateToastMessage(appContext.getString(R.string.bluetooth_denied))
-                            continuation.resume(null) // Resume with null in case of denial
-                        },
-                        onNotSupported = {
-                            updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))
-                            continuation.resume(null) // Resume with null in case of unsupported device
-                        },
-                        onMissingPermission = {
-                            updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))
-                            continuation.resume(null) // Resume with null in case of missing permissions
                         }
-                    )
+                    }
+                },
+                onDenied = {
+                    updateToastMessage(appContext.getString(R.string.bluetooth_denied))
+                    continuation.resume(null)
+                },
+                onNotSupported = {
+                    updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))
+                    continuation.resume(null)
+                },
+                onMissingPermission = {
+                    updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))
+                    continuation.resume(null)
                 }
             )
         }
     }
+
 
     fun stopServer() {
         bluetoothCustomManager.stopBluetoothServer()
@@ -216,11 +202,7 @@ class BluetoothViewModel(
 
   //----------------------------------Enabling-------------------------------------
 
-    fun isBluetoothEnabled(): Boolean {
-        return bluetoothCustomManager.isBluetoothEnabled()
-    }
-
-    fun ensureBluetoothEnabled(
+    private fun ensureBluetoothEnabled(
         onEnabled: () -> Unit,
         onDenied: () -> Unit,
         onNotSupported: () -> Unit,
@@ -229,12 +211,7 @@ class BluetoothViewModel(
         bluetoothCustomManager.ensureBluetoothEnabled(enableBluetoothLauncher, onEnabled, onDenied, onNotSupported, onMissingPermission)
     }
   //---------------------------------Permissions--------------------------------------------------------
-    fun ensurePermissions(
-        onGranted: () -> Unit,
-        onDenied: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))}
-    ) {
-        bluetoothCustomManager.ensurePermissions(requestPermissionLauncher, onGranted, onDenied)
-    }
+
   //-----------------------------------Sending and Receiving------------------------------------------------------------
     fun sendMessage(socket: BluetoothSocket, message: String) {
         viewModelScope.launch {
@@ -242,15 +219,11 @@ class BluetoothViewModel(
         }
     }
 
-    fun startListeningForMessages(socket: BluetoothSocket) {
+    private fun startListeningForMessages(socket: BluetoothSocket) {
         bluetoothCustomManager.listenForData(socket) { message ->
             viewModelScope.launch {
                 _receivedMessages.value += message  // Update UI
             }
         }
     }
-
-//    fun hasBluetoothPermissions(): Boolean {
-//        return bluetoothCustomManager.hasBluetoothPermissions()
-//    }
 }

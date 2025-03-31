@@ -26,7 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fiax.hdr.ui.components.scaffold.DeviceList
+import com.fiax.hdr.ui.components.BluetoothPermissionHandler
+import com.fiax.hdr.ui.components.NoPermissionMessage
+import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 import kotlinx.coroutines.launch
 
@@ -43,6 +45,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
     val isScanning by bluetoothViewModel.isDiscovering.collectAsState()
     val toastMessage by bluetoothViewModel.toastMessage.collectAsState()
     val receivedMessage by bluetoothViewModel.receivedMessages.collectAsState()
+    val hasPermission by bluetoothViewModel.hasPermissions.collectAsState()
 
     LaunchedEffect(toastMessage) {
         if (toastMessage.isNotEmpty()) {
@@ -63,59 +66,69 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                Log.d("HomeScreen", "Button clicked. isServer: $isServer")
-                coroutineScope.launch {
-                    if (isServer) {
-                        bluetoothViewModel.stopServer()
-                    } else {
-                        bluetoothViewModel.startServer()
-                    }
-
-                }
+        // Handles permission requests before showing the UI
+        BluetoothPermissionHandler(
+            context = context,
+            onPermissionGranted = {
+                bluetoothViewModel.updatePermissions(context)
             }
-        ) {
-            Text(if (isServer) "Stop Server" else "Start Server")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextField(
-            value = sendMessage,
-            onValueChange = { sendMessage = it },
-            label = { Text("Enter Message") }
         )
 
-        Button(onClick = {
-            connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
-        }) {
-            Text("Send Message")
-        }
+        if (hasPermission) {
+            Button(
+                onClick = {
+                    Log.d("HomeScreen", "Button clicked. isServer: $isServer")
+                    coroutineScope.launch {
+                        if (isServer) {
+                            bluetoothViewModel.stopServer()
+                        } else {
+                            bluetoothViewModel.startServer()
+                        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Received: $receivedMessage", fontSize = 16.sp)
-
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (!isScanning)
-                    bluetoothViewModel.startDiscovery()
-                else
-                    bluetoothViewModel.stopDiscovery()
+                    }
+                }
+            ) {
+                Text(if (isServer) "Stop Server" else "Start Server")
             }
-        ) {
-            Text(
-                if (isScanning) "Stop Scanning" else "Start Scanning"
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextField(
+                value = sendMessage,
+                onValueChange = { sendMessage = it },
+                label = { Text("Enter Message") }
             )
-        }
 
-        DeviceList(bluetoothViewModel)
+            Button(onClick = {
+                connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
+            }) {
+                Text("Send Message")
+            }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Received: $receivedMessage", fontSize = 16.sp)
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (!isScanning)
+                        bluetoothViewModel.startDiscovery()
+                    else
+                        bluetoothViewModel.stopDiscovery()
+                }
+            ) {
+                Text(
+                    if (isScanning) "Stop Scanning" else "Start Scanning"
+                )
+            }
+
+            DeviceList(bluetoothViewModel)
+        } else
+            NoPermissionMessage(context, bluetoothViewModel)
     }
 }
 

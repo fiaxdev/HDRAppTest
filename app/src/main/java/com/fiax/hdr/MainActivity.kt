@@ -6,18 +6,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.navigation.compose.rememberNavController
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
-import com.fiax.hdr.utils.PermissionHelper
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 
 class MainActivity : ComponentActivity() {
@@ -36,7 +34,12 @@ class MainActivity : ComponentActivity() {
                     bluetoothViewModel.updateDiscoveryState(false)
                 }
                 BluetoothDevice.ACTION_FOUND -> {
-                    val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    val device: BluetoothDevice? =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        else
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     device?.let {
                         bluetoothViewModel.addDiscoveredDevice(it)
                     }
@@ -48,14 +51,8 @@ class MainActivity : ComponentActivity() {
     // Define an ActivityResultLauncher for enabling Bluetooth
     private val enableBluetoothLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        // Handle the result from Bluetooth enable request
-        bluetoothCustomManager.handleActivityResult(result.resultCode)
-    }
-
-    private val requestPermissionsLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val granted = permissions.all { it.value }
-            bluetoothCustomManager.handlePermissionsResult(granted)
+            // Handle the result from Bluetooth enable request
+            bluetoothCustomManager.handleActivityResult(result.resultCode)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +60,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         bluetoothCustomManager = BluetoothCustomManager()
-        bluetoothViewModel = BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher, requestPermissionsLauncher)
+        bluetoothViewModel = BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher, /*requestPermissionsLauncher*/)
 
         setContent {
             HDRTheme {
@@ -71,8 +68,6 @@ class MainActivity : ComponentActivity() {
                 MainScaffold(navController, bluetoothViewModel)
             }
         }
-
-        requestBluetoothPermissions()
 
         // Register receiver
         val filter = IntentFilter().apply {
@@ -86,16 +81,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(bluetoothReceiver)
-    }
-
-//    companion object {
-//        fun requestBluetoothPermissions(mainActivity: MainActivity) {
-//            mainActivity.requestPermissionsLauncher.launch(PermissionHelper.getRequiredPermissions())
-//        }
-//    }
-
-    private fun requestBluetoothPermissions() {
-        ActivityCompat.requestPermissions(this, PermissionHelper.getRequiredPermissions(), 1)
     }
 }
 

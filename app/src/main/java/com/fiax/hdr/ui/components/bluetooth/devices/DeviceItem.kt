@@ -1,4 +1,4 @@
-package com.fiax.hdr.ui.components.scaffold
+package com.fiax.hdr.ui.components.bluetooth.devices
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice
