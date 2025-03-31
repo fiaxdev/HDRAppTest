@@ -1,6 +1,6 @@
 package com.fiax.hdr.ui.screens
 
-import android.bluetooth.BluetoothSocket
+import android.app.Activity
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
     var sendMessage by remember { mutableStateOf("") }
-    val connectionSocket by remember { mutableStateOf<BluetoothSocket?>(null) }
+    val connectionSocket by bluetoothViewModel.connectionSocket.collectAsState()
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -82,7 +82,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
                         if (isServer) {
                             bluetoothViewModel.stopServer()
                         } else {
-                            bluetoothViewModel.startServer()
+                            bluetoothViewModel.startServer(context as Activity)
                         }
 
                     }
@@ -115,8 +115,10 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
             Button(
                 onClick = {
-                    if (!isScanning)
-                        bluetoothViewModel.startDiscovery()
+                    if (!isScanning) {
+                        bluetoothViewModel.startDiscovery(context as Activity)
+                    }
+
                     else
                         bluetoothViewModel.stopDiscovery()
                 }

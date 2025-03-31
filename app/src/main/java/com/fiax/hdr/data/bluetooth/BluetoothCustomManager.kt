@@ -2,6 +2,7 @@ package com.fiax.hdr.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -22,7 +23,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
-import kotlin.concurrent.thread
 
 class BluetoothCustomManager {
 
@@ -198,19 +198,40 @@ class BluetoothCustomManager {
         }
     }
 
-    fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit) {
-        thread {
-            try {
-                val inputStream = socket.inputStream
-                val buffer = ByteArray(1024)
-                while (true) {
-                    val bytesRead = inputStream.read(buffer)
-                    val receivedMessage = String(buffer, 0, bytesRead, Charsets.UTF_8)
-                    onMessageReceived(receivedMessage)  // Callback to ViewModel
-                }
-            } catch (e: IOException) {
-                Log.e("Bluetooth", "Error receiving data: ${e.message}")
+//    fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit) {
+//        thread {
+//            try {
+//                val inputStream = socket.inputStream
+//                val buffer = ByteArray(1024)
+//                while (true) {
+//                    val bytesRead = inputStream.read(buffer)
+//                    val receivedMessage = String(buffer, 0, bytesRead, Charsets.UTF_8)
+//                    onMessageReceived(receivedMessage)  // Callback to ViewModel
+//                }
+//            } catch (e: IOException) {
+//                Log.e("Bluetooth", "Error receiving data: ${e.message}")
+//            }
+//        }
+//    }
+
+    suspend fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit, onConnectionLost: () -> Unit) {
+        try {
+            val inputStream = socket.inputStream
+            val buffer = ByteArray(1024)
+
+            while (true) { // Keep listening for messages
+                val bytesRead = withContext(Dispatchers.IO) {
+                    inputStream.read(buffer)
+                } // Blocks until data is received
+                val message = String(buffer, 0, bytesRead)
+                Log.d("Bluetooth", "Message received: $message")
+
+                // Call a callback to notify ViewModel
+                onMessageReceived(message)
             }
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Connection lost: ${e.message}")
+            onConnectionLost() // Notify ViewModel when connection is lost
         }
     }
 
@@ -222,6 +243,13 @@ class BluetoothCustomManager {
 //            val deviceHardwareAddress = device.address // MAC address
 //        }
 //    }
+
+    fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {
+        val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration)
+        }
+        activity.startActivity(discoverableIntent)
+    }
 
     private fun isBluetoothSupported(): Boolean{
         return bluetoothAdapter != null
