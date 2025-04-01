@@ -38,6 +38,7 @@
     <string name="bluetooth_permission_denied">Bluetooth features won\'t work without permission!</string>
     <string name="bluetooth_connection_failed">Bluetooth connection failed</string>
     <string name="bluetooth_connection_lost">Connection was lost</string>
+    <string name="disconnect_request">DISCONNECT</string>
 
 
 </resources>

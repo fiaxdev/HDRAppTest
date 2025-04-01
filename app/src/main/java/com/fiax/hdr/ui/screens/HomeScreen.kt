@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -46,6 +46,11 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
     val toastMessage by bluetoothViewModel.toastMessage.collectAsState()
     val receivedMessage by bluetoothViewModel.receivedMessages.collectAsState()
     val hasPermission by bluetoothViewModel.hasPermissions.collectAsState()
+    val connectionStatus by bluetoothViewModel.connectionStatus.collectAsState()
+
+    LaunchedEffect(Unit) {
+        bluetoothViewModel.getBondedDevices()
+    }
 
     LaunchedEffect(toastMessage) {
         if (toastMessage.isNotEmpty()) {
@@ -57,9 +62,7 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Bluetooth Connection", fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -115,10 +118,8 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
 
             Button(
                 onClick = {
-                    if (!isScanning) {
+                    if (!isScanning)
                         bluetoothViewModel.startDiscovery(context as Activity)
-                    }
-
                     else
                         bluetoothViewModel.stopDiscovery()
                 }
@@ -127,6 +128,8 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
                     if (isScanning) "Stop Scanning" else "Start Scanning"
                 )
             }
+
+            Text(text = connectionStatus, style = MaterialTheme.typography.bodyLarge)
 
             DeviceList(bluetoothViewModel)
         } else

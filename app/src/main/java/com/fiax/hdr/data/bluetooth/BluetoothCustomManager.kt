@@ -114,10 +114,9 @@ class BluetoothCustomManager {
     suspend fun acceptClientConnection(): BluetoothSocket? {
         return withContext(Dispatchers.IO) { // Run in background thread
             try {
-                val socket = serverSocket?.accept()
-                connectedSocket = socket
-                Log.d("BluetoothServer", "Client connected: ${socket?.remoteDevice?.name}")
-                socket
+                connectedSocket = serverSocket?.accept()
+                Log.d("BluetoothServer", "Client connected: ${connectedSocket?.remoteDevice?.name}")
+                connectedSocket
             } catch (e: IOException) {
                 Log.e("BluetoothServer", "Error accepting connection: ${e.message}")
                 null
@@ -129,15 +128,25 @@ class BluetoothCustomManager {
 
     fun stopBluetoothServer() {
         try {
-            connectedSocket?.close() // Close connected socket if active
+            disconnect()
             serverSocket?.close() // Close server socket
-            connectedSocket = null
             serverSocket = null
         } catch (e: IOException) {
             e.printStackTrace()
         }
     }
 
+    fun disconnect() {
+        try {
+            // Send a disconnect message to the other device
+            sendData(connectedSocket!!, appContext.getString(R.string.disconnect_request))
+            // Close the socket
+            connectedSocket?.close()
+            connectedSocket = null
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
     suspend fun connectToServer(device: BluetoothDevice): BluetoothSocket? {
         if (!PermissionHelper.hasPermissions(context = appContext)) {
             Log.e("BluetoothClient", "Missing Bluetooth permissions")
@@ -224,10 +233,14 @@ class BluetoothCustomManager {
                     inputStream.read(buffer)
                 } // Blocks until data is received
                 val message = String(buffer, 0, bytesRead)
-                Log.d("Bluetooth", "Message received: $message")
+
+                if (message == appContext.getString(R.string.disconnect_request))
+                    onConnectionLost() // Notify ViewModel when connection is lost
 
                 // Call a callback to notify ViewModel
-                onMessageReceived(message)
+                else{
+                    onMessageReceived(message)
+                }
             }
         } catch (e: IOException) {
             Log.e("Bluetooth", "Connection lost: ${e.message}")
@@ -235,14 +248,14 @@ class BluetoothCustomManager {
         }
     }
 
-
-//    fun getBondedDevices(): Set<BluetoothDevice>? {
-//        val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
+    @SuppressLint("MissingPermission")
+    fun getBondedDevices(): Set<BluetoothDevice>? {
+        return bluetoothAdapter?.bondedDevices
 //        pairedDevices?.forEach { device ->
 //            val deviceName = device.name
 //            val deviceHardwareAddress = device.address // MAC address
 //        }
-//    }
+    }
 
     fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {
         val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {

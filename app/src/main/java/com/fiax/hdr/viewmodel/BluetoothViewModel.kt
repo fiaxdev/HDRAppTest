@@ -33,6 +33,9 @@ class BluetoothViewModel(
     private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
 
+    private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
+    val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
+
     private val _isDiscovering = MutableStateFlow(false)
     val isDiscovering: StateFlow<Boolean> = _isDiscovering
 
@@ -104,6 +107,16 @@ class BluetoothViewModel(
     }
 //---------------------------------------Bluetooth functionalities---------------------------------------------
 
+  //-------------------------------------Paired devices------------------------------------------------------
+    fun getBondedDevices() {
+        ensureBluetoothEnabled(
+            onEnabled = {
+                val pairedDevices = bluetoothCustomManager.getBondedDevices()
+                if (pairedDevices != null)
+                  _pairedDevices.value = pairedDevices.toList()
+            }
+        )
+    }
   //-------------------------------------Discovery------------------------------------------------------------
 
     fun startDiscovery(activity: Activity) {
@@ -207,6 +220,12 @@ class BluetoothViewModel(
         bluetoothCustomManager.stopBluetoothServer()
         updateServerStatus(false)
         updateToastMessage(appContext.getString(R.string.bluetooth_server_stopped))
+        updateConnectionStatus("Not connected")
+        updateConnectionSocket(null)
+    }
+
+    fun disconnect() {
+        bluetoothCustomManager.disconnect()
         updateConnectionStatus("Not connected")
         updateConnectionSocket(null)
     }
