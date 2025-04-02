@@ -11,13 +11,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.fiax.hdr.viewmodel.BluetoothViewModel
 
 @Composable
 @SuppressLint("MissingPermission")
-fun DeviceItem(device: BluetoothDevice, onClick: () -> Unit) {
+fun DeviceItem(device: BluetoothDevice, bluetoothViewModel: BluetoothViewModel, onClick: () -> Unit) {
+
+    val connectionSocket = bluetoothViewModel.connectionSocket.collectAsState()
 
     Card(
         modifier = Modifier
@@ -31,11 +35,22 @@ fun DeviceItem(device: BluetoothDevice, onClick: () -> Unit) {
             Text(
                 text = device.name ?: "Unknown Device",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp),
+                color =
+                    if (connectionSocket.value?.remoteDevice?.address == device.address)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurface
             )
             if (device.name == null)
                 Text(
                     text = device.address,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            if (connectionSocket.value?.remoteDevice?.address == device.address)
+                Text(
+                    text = "Connected",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )

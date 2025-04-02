@@ -38,7 +38,9 @@
     <string name="bluetooth_permission_denied">Bluetooth features won\'t work without permission!</string>
     <string name="bluetooth_connection_failed">Bluetooth connection failed</string>
     <string name="bluetooth_connection_lost">Connection was lost</string>
-    <string name="disconnect_request">DISCONNECT</string>
+    <string name="disconnect_request_code">DISCONNECT</string>
+    <string name="bluetooth_connection_lost_due_to_remote_device_disconnection">The connected device has disconnected</string>
+    <string name="bluetooth_connection_lost_due_to_IOexception">Connection lost due to an unexpected error</string>
 
 
 </resources>

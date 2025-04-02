@@ -82,7 +82,10 @@ class BluetoothViewModel(
 
     // Add discovered device to list if not already in
     fun addDiscoveredDevice(device: BluetoothDevice) {
-        if (_discoveredDevices.value.contains(device)) return
+        if (_discoveredDevices.value.contains(device) or
+            _pairedDevices.value.contains(device)
+        )
+            return
         _discoveredDevices.value += device
     }
 
@@ -145,12 +148,12 @@ class BluetoothViewModel(
 
         ensureBluetoothEnabled(
             onEnabled = {
-                _connectionStatus.value = "Connecting to ${device.name}..."
+                _connectionStatus.value = "Connecting..."
                 var socket: BluetoothSocket?
                 viewModelScope.launch(Dispatchers.IO) {
                     socket = bluetoothCustomManager.connectToServer(device)
                     if (socket != null) {
-                        updateConnectionStatus("Connected to ${device.name}")
+                        updateConnectionStatus("Connected")
                         updateConnectionSocket(socket)
                         startListeningForMessages(socket!!)
                     } else {
@@ -181,7 +184,7 @@ class BluetoothViewModel(
                                     val socket = bluetoothCustomManager.acceptClientConnection()
                                     withContext(Dispatchers.Main) {
                                         if (socket != null) {
-                                            updateConnectionStatus("Connected to ${socket.remoteDevice.name}")
+                                            updateConnectionStatus("Connected")
                                             updateConnectionSocket(socket)
                                             startListeningForMessages(socket)
                                         } else {
@@ -225,9 +228,19 @@ class BluetoothViewModel(
     }
 
     fun disconnect() {
-        bluetoothCustomManager.disconnect()
-        updateConnectionStatus("Not connected")
-        updateConnectionSocket(null)
+        viewModelScope.launch { // launch a coroutine
+            try {
+                // Send a disconnect message
+                bluetoothCustomManager.sendData(connectionSocket.value, appContext.getString(R.string.disconnect_request_code))
+                // Close the socket
+                bluetoothCustomManager.closeSocket(connectionSocket.value)
+            } catch (e: Exception){
+                //Handle the error, for example notify the user
+            } finally{
+                updateConnectionStatus("Not connected")
+                updateConnectionSocket(null)
+            }
+        }
     }
 
   //----------------------------------Enabling-------------------------------------
@@ -253,10 +266,10 @@ class BluetoothViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             bluetoothCustomManager.listenForData(
                 socket = socket,
-                onConnectionLost = {
+                onConnectionLost = {toastMessage ->
                     updateConnectionStatus("Not connected")
                     updateServerStatus(false)
-                    updateToastMessage(appContext.getString(R.string.bluetooth_connection_lost))
+                    updateToastMessage(toastMessage)
                 },
                 onMessageReceived = { message ->
                     viewModelScope.launch {

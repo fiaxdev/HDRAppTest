@@ -32,7 +32,7 @@ class BluetoothCustomManager {
     }
 
     private var serverSocket: BluetoothServerSocket? = null
-    private var connectedSocket: BluetoothSocket? = null
+//    private var connectedSocket: BluetoothSocket? = null
 
     private val appName = appContext.getString(R.string.app_name)
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
@@ -114,7 +114,7 @@ class BluetoothCustomManager {
     suspend fun acceptClientConnection(): BluetoothSocket? {
         return withContext(Dispatchers.IO) { // Run in background thread
             try {
-                connectedSocket = serverSocket?.accept()
+                val connectedSocket = serverSocket?.accept()
                 Log.d("BluetoothServer", "Client connected: ${connectedSocket?.remoteDevice?.name}")
                 connectedSocket
             } catch (e: IOException) {
@@ -128,7 +128,7 @@ class BluetoothCustomManager {
 
     fun stopBluetoothServer() {
         try {
-            disconnect()
+            //disconnect()
             serverSocket?.close() // Close server socket
             serverSocket = null
         } catch (e: IOException) {
@@ -136,17 +136,17 @@ class BluetoothCustomManager {
         }
     }
 
-    fun disconnect() {
-        try {
-            // Send a disconnect message to the other device
-            sendData(connectedSocket!!, appContext.getString(R.string.disconnect_request))
-            // Close the socket
-            connectedSocket?.close()
-            connectedSocket = null
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
+//    fun disconnect() {
+//        try {
+//            // Send a disconnect message to the other device
+//            sendData(connectedSocket!!, appContext.getString(R.string.disconnect_request))
+//            // Close the socket
+//            connectedSocket?.close()
+//            connectedSocket = null
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//        }
+//    }
     suspend fun connectToServer(device: BluetoothDevice): BluetoothSocket? {
         if (!PermissionHelper.hasPermissions(context = appContext)) {
             Log.e("BluetoothClient", "Missing Bluetooth permissions")
@@ -196,7 +196,11 @@ class BluetoothCustomManager {
         }
     }
 
-    fun sendData(socket: BluetoothSocket, message: String) {
+    fun sendData(socket: BluetoothSocket?, message: String) {
+        if (socket == null) {
+            Log.e("Bluetooth", "Cannot send data: Socket is null")
+            return
+        }
         try {
             val outputStream = socket.outputStream
             outputStream.write(message.toByteArray(Charsets.UTF_8))
@@ -204,6 +208,17 @@ class BluetoothCustomManager {
             Log.d("Bluetooth", "Message sent: $message")
         } catch (e: IOException) {
             Log.e("Bluetooth", "Error sending data: ${e.message}")
+            throw e // Rethrow the exception to let the caller know there was an error
+        }
+    }
+
+    fun closeSocket(socket: BluetoothSocket?) {
+        try {
+            socket?.close()
+            Log.d("Bluetooth", "Socket closed successfully.")
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Error closing socket: ${e.message}")
+            throw e // Rethrow to let the caller know about the error
         }
     }
 
@@ -223,7 +238,7 @@ class BluetoothCustomManager {
 //        }
 //    }
 
-    suspend fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit, onConnectionLost: () -> Unit) {
+    suspend fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit, onConnectionLost: (String) -> Unit) {
         try {
             val inputStream = socket.inputStream
             val buffer = ByteArray(1024)
@@ -234,8 +249,10 @@ class BluetoothCustomManager {
                 } // Blocks until data is received
                 val message = String(buffer, 0, bytesRead)
 
-                if (message == appContext.getString(R.string.disconnect_request))
-                    onConnectionLost() // Notify ViewModel when connection is lost
+                if (message == appContext.getString(R.string.disconnect_request_code)){
+                    onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost_due_to_remote_device_disconnection)) // Notify ViewModel when connection is lost
+                    break
+                }
 
                 // Call a callback to notify ViewModel
                 else{
@@ -244,17 +261,13 @@ class BluetoothCustomManager {
             }
         } catch (e: IOException) {
             Log.e("Bluetooth", "Connection lost: ${e.message}")
-            onConnectionLost() // Notify ViewModel when connection is lost
+            onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
         }
     }
 
     @SuppressLint("MissingPermission")
     fun getBondedDevices(): Set<BluetoothDevice>? {
         return bluetoothAdapter?.bondedDevices
-//        pairedDevices?.forEach { device ->
-//            val deviceName = device.name
-//            val deviceHardwareAddress = device.address // MAC address
-//        }
     }
 
     fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {

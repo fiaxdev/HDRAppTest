@@ -82,6 +82,8 @@ private fun DeviceListBuilder(
                 for (device in devices) {
                     DeviceItem(
                         device = device,
+                        bluetoothViewModel = bluetoothViewModel,
+                        //connectionSocket = connectionSocket,
                         onClick = {
                             if (device == connectionSocket?.remoteDevice)
                                 bluetoothViewModel.disconnect()
