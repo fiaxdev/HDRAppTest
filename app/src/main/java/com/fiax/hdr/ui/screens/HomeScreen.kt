@@ -3,12 +3,17 @@ package com.fiax.hdr.ui.screens
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -30,10 +35,14 @@ import com.fiax.hdr.ui.components.BluetoothPermissionHandler
 import com.fiax.hdr.ui.components.NoPermissionMessage
 import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.viewmodel.BluetoothViewModel
+import com.fiax.hdr.viewmodel.PatientViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
+fun HomeScreen(
+    bluetoothViewModel: BluetoothViewModel,
+    patientViewModel: PatientViewModel
+) {
 
     var sendMessage by remember { mutableStateOf("") }
     val connectionSocket by bluetoothViewModel.connectionSocket.collectAsState()
@@ -61,79 +70,93 @@ fun HomeScreen(bluetoothViewModel: BluetoothViewModel) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Bluetooth Connection", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    // Handles permission requests before showing the UI
+    BluetoothPermissionHandler(
+        context = context,
+        onPermissionGranted = {
+            bluetoothViewModel.updatePermissions(context)
+        }
+    )
 
-        Spacer(modifier = Modifier.height(16.dp))
+    if (hasPermission) {
+        Box {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Bluetooth Connection", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
-        // Handles permission requests before showing the UI
-        BluetoothPermissionHandler(
-            context = context,
-            onPermissionGranted = {
-                bluetoothViewModel.updatePermissions(context)
-            }
-        )
+                Spacer(modifier = Modifier.height(16.dp))
 
-        if (hasPermission) {
-            Button(
-                onClick = {
-                    Log.d("HomeScreen", "Button clicked. isServer: $isServer")
-                    coroutineScope.launch {
-                        if (isServer) {
-                            bluetoothViewModel.stopServer()
-                        } else {
-                            bluetoothViewModel.startServer(context as Activity)
+                Button(
+                    onClick = {
+                        Log.d("HomeScreen", "Button clicked. isServer: $isServer")
+                        coroutineScope.launch {
+                            if (isServer) {
+                                bluetoothViewModel.stopServer()
+                            } else {
+                                bluetoothViewModel.startServer(context as Activity)
+                            }
+
                         }
-
                     }
+                ) {
+                    Text(if (isServer) "Stop Server" else "Start Server")
                 }
-            ) {
-                Text(if (isServer) "Stop Server" else "Start Server")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextField(
+                    value = sendMessage,
+                    onValueChange = { sendMessage = it },
+                    label = { Text("Enter Message") }
+                )
+
+                Button(onClick = {
+                    connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
+                }) {
+                    Text("Send Message")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Received: $receivedMessage", fontSize = 16.sp)
+
+                HorizontalDivider()
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (!isScanning)
+                            bluetoothViewModel.startDiscovery(context as Activity)
+                        else
+                            bluetoothViewModel.stopDiscovery()
+                    }
+                ) {
+                    Text(
+                        if (isScanning) "Stop Scanning" else "Start Scanning"
+                    )
+                }
+
+                Text(text = connectionStatus, style = MaterialTheme.typography.bodyLarge)
+
+                DeviceList(bluetoothViewModel)
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextField(
-                value = sendMessage,
-                onValueChange = { sendMessage = it },
-                label = { Text("Enter Message") }
-            )
-
-            Button(onClick = {
-                connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
-            }) {
-                Text("Send Message")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Received: $receivedMessage", fontSize = 16.sp)
-
-            HorizontalDivider()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
+            FloatingActionButton(
                 onClick = {
-                    if (!isScanning)
-                        bluetoothViewModel.startDiscovery(context as Activity)
-                    else
-                        bluetoothViewModel.stopDiscovery()
-                }
+                    //TODO("Not yet implemented")
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
             ) {
-                Text(
-                    if (isScanning) "Stop Scanning" else "Start Scanning"
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                    contentDescription = "Add Patient"
                 )
             }
-
-            Text(text = connectionStatus, style = MaterialTheme.typography.bodyLarge)
-
-            DeviceList(bluetoothViewModel)
-        } else
-            NoPermissionMessage(context, bluetoothViewModel)
-    }
+        }
+    } else
+        NoPermissionMessage(context, bluetoothViewModel)
 }
-

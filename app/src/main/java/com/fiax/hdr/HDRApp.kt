@@ -2,6 +2,7 @@ package com.fiax.hdr
 
 import android.app.Application
 import android.content.Context
+import com.fiax.hdr.di.ServiceLocator
 
 class HDRApp : Application() {
     init {

@@ -218,7 +218,6 @@ class BluetoothViewModel(
         }
     }
 
-
     fun stopServer() {
         bluetoothCustomManager.stopBluetoothServer()
         updateServerStatus(false)

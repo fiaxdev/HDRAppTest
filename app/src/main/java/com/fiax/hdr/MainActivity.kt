@@ -17,12 +17,16 @@ import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
 import com.fiax.hdr.viewmodel.BluetoothViewModel
+import com.fiax.hdr.viewmodel.PatientViewModel
 
 class MainActivity : ComponentActivity() {
 
     //Bluetooth
     private lateinit var bluetoothViewModel: BluetoothViewModel
     private lateinit var bluetoothCustomManager: BluetoothCustomManager
+
+    //Patient ViewModel
+    private lateinit var patientViewModel: PatientViewModel
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -61,11 +65,12 @@ class MainActivity : ComponentActivity() {
 
         bluetoothCustomManager = BluetoothCustomManager()
         bluetoothViewModel = BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher, /*requestPermissionsLauncher*/)
+        patientViewModel = PatientViewModel(application)
 
         setContent {
             HDRTheme {
                 val navController = rememberNavController()
-                MainScaffold(navController, bluetoothViewModel)
+                MainScaffold(navController, bluetoothViewModel, patientViewModel)
             }
         }
 
