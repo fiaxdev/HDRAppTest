@@ -7,12 +7,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.fiax.hdr.R
+import com.fiax.hdr.ui.screens.AddPatientScreen
 import com.fiax.hdr.ui.screens.HomeScreen
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 import com.fiax.hdr.viewmodel.PatientViewModel
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
+    data object AddPatient : Screen("add_patient")
 }
 
 @Composable
@@ -24,8 +26,13 @@ fun AppNavigation(
 ) {
 
     NavHost(navController = navController, startDestination = stringResource(R.string.home), modifier = modifier) {
-        composable(Screen.Home.route){ HomeScreen(bluetoothViewModel, patientViewModel) }
+
+        composable(Screen.Home.route){ HomeScreen(bluetoothViewModel, patientViewModel, navController) }
+
+        composable(Screen.AddPatient.route){ AddPatientScreen(patientViewModel, navController) }
+
     }
+
 }
 
 

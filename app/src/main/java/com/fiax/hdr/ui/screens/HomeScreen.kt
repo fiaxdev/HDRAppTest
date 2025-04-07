@@ -28,12 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.components.BluetoothPermissionHandler
 import com.fiax.hdr.ui.components.NoPermissionMessage
 import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
+import com.fiax.hdr.ui.components.util.TitleText
+import com.fiax.hdr.ui.navigation.Screen
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 import com.fiax.hdr.viewmodel.PatientViewModel
 import kotlinx.coroutines.launch
@@ -41,7 +43,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     bluetoothViewModel: BluetoothViewModel,
-    patientViewModel: PatientViewModel
+    patientViewModel: PatientViewModel,
+    navController: NavHostController,
 ) {
 
     var sendMessage by remember { mutableStateOf("") }
@@ -84,7 +87,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Bluetooth Connection", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                TitleText("Bluetooth Screen")
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -145,7 +148,7 @@ fun HomeScreen(
             }
             FloatingActionButton(
                 onClick = {
-                    //TODO("Not yet implemented")
+                    navController.navigate(Screen.AddPatient.route)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

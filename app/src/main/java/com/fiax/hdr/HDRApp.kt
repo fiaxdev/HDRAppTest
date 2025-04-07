@@ -2,7 +2,6 @@ package com.fiax.hdr
 
 import android.app.Application
 import android.content.Context
-import com.fiax.hdr.di.ServiceLocator
 
 class HDRApp : Application() {
     init {
@@ -12,5 +11,12 @@ class HDRApp : Application() {
     companion object {
         private lateinit var instance: HDRApp
         fun getAppContext(): Context = instance.applicationContext
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        //clearDatabaseAndSyncQueue(context = applicationContext)
+        //ServiceLocator.initialize(this)
+        //TODO(start using service locator)
     }
 }
