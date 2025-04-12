@@ -11,17 +11,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.components.patients.PatientForm
 import com.fiax.hdr.ui.components.util.TitleText
-import com.fiax.hdr.viewmodel.PatientViewModel
+import com.fiax.hdr.viewmodel.PatientFormViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun AddPatientScreen(
-    patientViewModel: PatientViewModel,
     navController: NavHostController,
 ){
+
+    val patientFormViewModel: PatientFormViewModel = hiltViewModel()
 
     val scope = rememberCoroutineScope()
 
@@ -41,7 +43,7 @@ fun AddPatientScreen(
             PatientForm(
                 onSubmit = { patient ->
                     scope.launch {
-                        patientViewModel.addPatient(patient)
+                        patientFormViewModel.addPatient(patient)
                     }
                     navController.popBackStack()
                 }

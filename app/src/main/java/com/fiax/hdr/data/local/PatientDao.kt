@@ -10,12 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PatientDao {
     @Insert
-    suspend fun insertPatient(patient: Patient)
+    suspend fun insertPatient(patient: Patient): Long
 
     @Delete
     suspend fun deletePatient(patient: Patient)
 
     @Query("SELECT * FROM patients")
     fun getPatients(): Flow<List<Patient>>
-    // ... other methods
 }

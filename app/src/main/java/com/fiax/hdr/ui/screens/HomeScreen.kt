@@ -37,13 +37,11 @@ import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.ui.navigation.Screen
 import com.fiax.hdr.viewmodel.BluetoothViewModel
-import com.fiax.hdr.viewmodel.PatientViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     bluetoothViewModel: BluetoothViewModel,
-    patientViewModel: PatientViewModel,
     navController: NavHostController,
 ) {
 

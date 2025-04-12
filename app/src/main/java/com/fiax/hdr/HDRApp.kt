@@ -2,7 +2,10 @@ package com.fiax.hdr
 
 import android.app.Application
 import android.content.Context
+import dagger.hilt.android.HiltAndroidApp
 
+
+@HiltAndroidApp
 class HDRApp : Application() {
     init {
         instance = this
@@ -16,7 +19,5 @@ class HDRApp : Application() {
     override fun onCreate() {
         super.onCreate()
         //clearDatabaseAndSyncQueue(context = applicationContext)
-        //ServiceLocator.initialize(this)
-        //TODO(start using service locator)
     }
 }

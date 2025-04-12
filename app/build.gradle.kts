@@ -1,8 +1,11 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+
+    kotlin("kapt") // ✅ for Hilt
+    id("com.google.dagger.hilt.android") // ✅ Hilt plugin
+    id("com.google.devtools.ksp") version "2.1.20-2.0.0" // ✅ for Room
 }
 
 android {
@@ -30,11 +33,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -59,8 +63,13 @@ dependencies {
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.runtime.android)
     ksp(libs.androidx.room.compiler)
-    annotationProcessor(libs.androidx.room.compiler)
+
+    implementation (libs.androidx.activity.ktx) // Required for Hilt integration
+    implementation (libs.hilt.android)
+    kapt (libs.hilt.compiler) // Annotation processor
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -69,4 +78,14 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+kapt {
+    correctErrorTypes = true
+}
+
+kotlin {
+    sourceSets.all {
+        kotlin.srcDir("build/generated/ksp/${name}/kotlin")
+    }
 }

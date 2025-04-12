@@ -1,16 +1,19 @@
 package com.fiax.hdr.data.repository
 
-import com.fiax.hdr.data.local.PatientDao
+import com.fiax.hdr.data.local.RoomDataSource
 import com.fiax.hdr.data.model.Patient
+import javax.inject.Inject
 
 interface PatientRepository {
     suspend fun addPatient(patient: Patient)
 }
 
-class LocalPatientRepositoryImpl(private val patientDao: PatientDao) : PatientRepository {
+class PatientRepositoryImpl @Inject constructor(
+    private val roomDataSource: RoomDataSource
+) : PatientRepository {
 
     override suspend fun addPatient(patient: Patient) {
-        patientDao.insertPatient(patient)
+        roomDataSource.insertPatient(patient)
     }
 
 }

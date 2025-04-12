@@ -7,18 +7,16 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.navigation.AppNavigation
 import com.fiax.hdr.viewmodel.BluetoothViewModel
-import com.fiax.hdr.viewmodel.PatientViewModel
 
 @Composable
 fun MainScaffold(
     navController: NavHostController,
     bluetoothViewModel: BluetoothViewModel,
-    patientViewModel: PatientViewModel
 ) {
     Scaffold(
         bottomBar = { BottomBar(navController) }
     ) { padding ->
-        AppNavigation(navController, bluetoothViewModel, patientViewModel, Modifier.padding(padding))
+        AppNavigation(navController, bluetoothViewModel, Modifier.padding(padding))
     }
 }
 
