@@ -31,4 +31,9 @@ sealed class Resource<T>(var data: T? = null, val message: String? = null) {
      * Represents a resource operation that is currently loading.
      */
     class Loading<T> : Resource<T>()
+
+    /**
+     * Represents a resource operation that has not yet started.
+     */
+    class None<T> : Resource<T>()
 }
