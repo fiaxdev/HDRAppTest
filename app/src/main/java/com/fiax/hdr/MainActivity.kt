@@ -12,8 +12,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.navigation.compose.rememberNavController
-import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
 import com.fiax.hdr.viewmodel.BluetoothViewModel
@@ -23,8 +23,15 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     //Bluetooth
-    private lateinit var bluetoothViewModel: BluetoothViewModel
-    private lateinit var bluetoothCustomManager: BluetoothCustomManager
+
+    private val bluetoothViewModel: BluetoothViewModel by viewModels()
+
+    // Define an ActivityResultLauncher for enabling Bluetooth
+    private val enableBluetoothLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            // Handle the result from Bluetooth enable request
+            bluetoothViewModel.handleActivityResult(result.resultCode)
+        }
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -50,19 +57,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Define an ActivityResultLauncher for enabling Bluetooth
-    private val enableBluetoothLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            // Handle the result from Bluetooth enable request
-            bluetoothCustomManager.handleActivityResult(result.resultCode)
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        bluetoothCustomManager = BluetoothCustomManager()
-        bluetoothViewModel = BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher, /*requestPermissionsLauncher*/)
+        bluetoothViewModel.setEnableBluetoothLauncher(enableBluetoothLauncher)
+
+        enableEdgeToEdge()
 
         setContent {
             HDRTheme {

@@ -44,6 +44,7 @@
     <string name="add_patient_form_not_valid">Saving failed, fill in mandatory fields</string>
     <string name="add_patient_success">Patient added successfully</string>
     <string name="add_patient_error">Error: Patient was not added</string>
+    <string name="bluetooth_launcher_not_initialized">Launcher not initialized</string>
 
 
 </resources>

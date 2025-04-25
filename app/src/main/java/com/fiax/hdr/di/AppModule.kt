@@ -2,6 +2,7 @@ package com.fiax.hdr.di
 
 import android.content.Context
 import androidx.room.Room
+import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.HDRDatabase
 import com.fiax.hdr.data.local.RoomDataSource
 import com.fiax.hdr.data.repository.PatientRepository
@@ -41,5 +42,11 @@ object AppModule {
     @Singleton
     fun providePatientRepository(roomDataSource: RoomDataSource): PatientRepository {
         return PatientRepositoryImpl(roomDataSource)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBluetoothCustomManager(): BluetoothCustomManager {
+        return BluetoothCustomManager()
     }
 }

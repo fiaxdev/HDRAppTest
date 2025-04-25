@@ -13,22 +13,30 @@ import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.utils.PermissionHelper
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-
-class BluetoothViewModel(
+@HiltViewModel
+class BluetoothViewModel @Inject constructor(
     private val bluetoothCustomManager: BluetoothCustomManager,
-    private val enableBluetoothLauncher: ActivityResultLauncher<Intent>,
 ): ViewModel()  {
 
     private val appContext = HDRApp.getAppContext()
+
+    // Mutable reference to launcher set by the Activity
+    private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
+
+    fun setEnableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
+        enableBluetoothLauncher = launcher
+    }
 
     private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
@@ -250,7 +258,14 @@ class BluetoothViewModel(
         onNotSupported: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))},
         onMissingPermission: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))}
     ) {
-        bluetoothCustomManager.ensureBluetoothEnabled(enableBluetoothLauncher, onEnabled, onDenied, onNotSupported, onMissingPermission)
+        val launcher = enableBluetoothLauncher
+        if (launcher != null) {
+            bluetoothCustomManager.ensureBluetoothEnabled(
+                launcher, onEnabled, onDenied, onNotSupported, onMissingPermission
+            )
+        } else {
+            updateToastMessage(appContext.getString(R.string.bluetooth_launcher_not_initialized))
+        }
     }
   //---------------------------------Permissions--------------------------------------------------------
 
@@ -275,7 +290,6 @@ class BluetoothViewModel(
                         _receivedMessages.value += message  // Update UI
                     }
                 }
-
             )
         }
     }
@@ -283,4 +297,24 @@ class BluetoothViewModel(
     private fun makeDeviceDiscoverable(activity: Activity) {
         ensureBluetoothEnabled(onEnabled = { bluetoothCustomManager.makeDeviceDiscoverable(activity) })
     }
+
+    fun handleActivityResult(resultCode: Int) {
+        bluetoothCustomManager.handleActivityResult(resultCode)
+    }
 }
+
+// GPT fix
+//class BluetoothViewModelFactory @Inject constructor(
+//    private val bluetoothCustomManager: BluetoothCustomManager,
+//    @Assisted private val enableBluetoothLauncher: ActivityResultLauncher<Intent>
+//) : ViewModelProvider.Factory {
+//    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+//        if (modelClass.isAssignableFrom(BluetoothViewModel::class.java)) {
+//            @Suppress("UNCHECKED_CAST")
+//            return BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher) as T
+//        }
+//        throw IllegalArgumentException("Unknown ViewModel class")
+//    }
+//}
+// GPT solution
+

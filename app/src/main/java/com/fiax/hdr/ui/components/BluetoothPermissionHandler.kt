@@ -122,7 +122,11 @@ fun GoToSettingsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 }
 
 @Composable
-fun NoPermissionMessage(context: Context, bluetoothViewModel: BluetoothViewModel) {
+fun NoPermissionMessage(
+    context: Context,
+    bluetoothViewModel: BluetoothViewModel,
+    onBack: () -> Unit
+) {
     var showRationale by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
@@ -166,6 +170,10 @@ fun NoPermissionMessage(context: Context, bluetoothViewModel: BluetoothViewModel
             }
         }) {
             Text("Grant Permissions")
+        }
+
+        Button(onClick = onBack) {
+            Text("Go Back")
         }
     }
 
