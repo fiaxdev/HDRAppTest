@@ -98,55 +98,6 @@ class PatientFormViewModel @Inject constructor(
             _errors.value = _errors.value.copy(ageError = null)
         }
 
-//        if (state.sex.isBlank() or state.sex.isEmpty()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(sexError = "Choose a sex")
-//        } else {
-//            _errors.value = _errors.value.copy(sexError = null)
-//        }
-//
-//        if (state.village.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(villageError = "Village is required")
-//        } else {
-//            _errors.value = _errors.value.copy(villageError = null)
-//        }
-//
-//        if (state.parish.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(parishError = "Parish is required")
-//        } else {
-//            _errors.value = _errors.value.copy(parishError = null)
-//        }
-//
-//        if (state.subCounty.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(subCountyError = "Sub-county is required")
-//        } else {
-//            _errors.value = _errors.value.copy(subCountyError = null)
-//        }
-//
-//        if (state.district.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(districtError = "District is required")
-//        } else {
-//            _errors.value = _errors.value.copy(districtError = null)
-//        }
-//
-//        if (state.nextOfKin.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(nextOfKinError = "Next of kin is required")
-//        } else {
-//            _errors.value = _errors.value.copy(nextOfKinError = null)
-//        }
-//
-//        if (state.contact.isBlank()) {
-//            isValid = false
-//            _errors.value = _errors.value.copy(contactError = "Contact is required")
-//        } else {
-//            _errors.value = _errors.value.copy(contactError = null)
-//        }
-
         return isValid
     }
 
@@ -170,12 +121,11 @@ class PatientFormViewModel @Inject constructor(
             }
         } else
             updateToastMessage(appContext.getString(R.string.add_patient_form_not_valid))
-
     }
 
     private suspend fun addPatient(patient: Patient) {
         updateInsertionStatus(Resource.Loading())
-        delay(3000) // Simulate network delay, to remove in the future
+        delay(1000) // Simulate network delay, to remove in the future
         val result = patientRepository.addPatient(patient)
         updateInsertionStatus(result)
         when (result) {
