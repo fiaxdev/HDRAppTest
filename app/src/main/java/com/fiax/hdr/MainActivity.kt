@@ -23,15 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     //Bluetooth
-
     private val bluetoothViewModel: BluetoothViewModel by viewModels()
-
-    // Define an ActivityResultLauncher for enabling Bluetooth
-    private val enableBluetoothLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            // Handle the result from Bluetooth enable request
-            bluetoothViewModel.handleActivityResult(result.resultCode)
-        }
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -61,6 +53,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Define an ActivityResultLauncher for enabling Bluetooth
+        val enableBluetoothLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                // Handle the result from Bluetooth enable request
+                bluetoothViewModel.handleActivityResult(result.resultCode)
+            }
+
         bluetoothViewModel.setEnableBluetoothLauncher(enableBluetoothLauncher)
 
         enableEdgeToEdge()
@@ -68,7 +67,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             HDRTheme {
                 val navController = rememberNavController()
-                MainScaffold(navController, bluetoothViewModel)
+                MainScaffold(navController)
             }
         }
 

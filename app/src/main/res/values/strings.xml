@@ -1,12 +1,15 @@
 <resources>
     <string name="app_name">HDR</string>
 
+    <string name="home">Home</string>
+
     <!-- Bluetooth -->
     <string name="app_uuid">9b7ac9e8-4b6f-4805-be75-2372d61fea9c</string>
 
     <!-- Routes -->
-    <string name="home">Home</string>
-    <string name="nfc">NFC</string>
+    <string name="nav_home">home</string>
+    <string name="nav_add_patient">add_patient</string>
+    <string name="nav_bluetooth">bluetooth</string>
 
     <!-- Home Screen -->
     <string name="write_nfc">Write to NFC</string>
@@ -45,6 +48,7 @@
     <string name="add_patient_success">Patient added successfully</string>
     <string name="add_patient_error">Error: Patient was not added</string>
     <string name="bluetooth_launcher_not_initialized">Launcher not initialized</string>
+
 
 
 </resources>

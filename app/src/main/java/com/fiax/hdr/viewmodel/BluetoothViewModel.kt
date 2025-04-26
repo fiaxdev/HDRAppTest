@@ -31,13 +31,6 @@ class BluetoothViewModel @Inject constructor(
 
     private val appContext = HDRApp.getAppContext()
 
-    // Mutable reference to launcher set by the Activity
-    private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
-
-    fun setEnableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
-        enableBluetoothLauncher = launcher
-    }
-
     private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
 
@@ -258,14 +251,12 @@ class BluetoothViewModel @Inject constructor(
         onNotSupported: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))},
         onMissingPermission: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))}
     ) {
-        val launcher = enableBluetoothLauncher
-        if (launcher != null) {
             bluetoothCustomManager.ensureBluetoothEnabled(
-                launcher, onEnabled, onDenied, onNotSupported, onMissingPermission
+                onEnabled,
+                onDenied,
+                onNotSupported,
+                onMissingPermission
             )
-        } else {
-            updateToastMessage(appContext.getString(R.string.bluetooth_launcher_not_initialized))
-        }
     }
   //---------------------------------Permissions--------------------------------------------------------
 
@@ -301,20 +292,8 @@ class BluetoothViewModel @Inject constructor(
     fun handleActivityResult(resultCode: Int) {
         bluetoothCustomManager.handleActivityResult(resultCode)
     }
+
+    fun setEnableBluetoothLauncher(enableBluetoothLauncher: ActivityResultLauncher<Intent>) {
+        bluetoothCustomManager.setEnableBluetoothLauncher(enableBluetoothLauncher)
+    }
 }
-
-// GPT fix
-//class BluetoothViewModelFactory @Inject constructor(
-//    private val bluetoothCustomManager: BluetoothCustomManager,
-//    @Assisted private val enableBluetoothLauncher: ActivityResultLauncher<Intent>
-//) : ViewModelProvider.Factory {
-//    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-//        if (modelClass.isAssignableFrom(BluetoothViewModel::class.java)) {
-//            @Suppress("UNCHECKED_CAST")
-//            return BluetoothViewModel(bluetoothCustomManager, enableBluetoothLauncher) as T
-//        }
-//        throw IllegalArgumentException("Unknown ViewModel class")
-//    }
-//}
-// GPT solution
-

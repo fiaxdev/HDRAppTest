@@ -37,9 +37,16 @@ class BluetoothCustomManager {
     private val appName = appContext.getString(R.string.app_name)
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
 
+    // Mutable reference to launcher set by the Activity
+    private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
+
+    // Setup
+    fun setEnableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
+        enableBluetoothLauncher = launcher
+    }
+
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
-        enableBluetoothLauncher: ActivityResultLauncher<Intent>,
         onEnabled: () -> Unit,
         onDenied: () -> Unit,
         onNotSupported: () -> Unit,
@@ -54,7 +61,7 @@ class BluetoothCustomManager {
                     // Bluetooth is not enabled, request to enable it
                     val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                     // Launch the intent to enable Bluetooth
-                    enableBluetoothLauncher.launch(enableBtIntent)
+                    enableBluetoothLauncher!!.launch(enableBtIntent)
                     // Save the callback to be used when the result is received
                     bluetoothEnableCallback = object : BluetoothEnableCallback {
                         override fun onBluetoothEnabled() {
