@@ -8,20 +8,33 @@ import com.fiax.hdr.data.model.FormErrors
 import com.fiax.hdr.data.model.FormState
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.data.repository.PatientRepository
+import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class PatientFormViewModel @Inject constructor(
+class AddPatientScreenViewModel @Inject constructor(
     private val patientRepository: PatientRepository,
 ): ViewModel(){
 
     private val appContext = HDRApp.getAppContext()
+
+    // -------------------Toasts--------------------------------
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
+
+    private fun sendToast(message: String) {
+        viewModelScope.launch {
+            _uiEvent.emit(UiEvent.ShowToast(message))
+        }
+    }
 
     private val _formState = MutableStateFlow(FormState())
     val formState: StateFlow<FormState> = _formState
@@ -31,18 +44,6 @@ class PatientFormViewModel @Inject constructor(
 
     private val _insertStatus = MutableStateFlow<Resource<Unit>>(Resource.None())
     val insertStatus: StateFlow<Resource<Unit>> = _insertStatus
-
-    private val _toastMessage = MutableStateFlow("")
-    val toastMessage: StateFlow<String> = _toastMessage
-
-    // Reset toast message after showing
-    fun onToastShown() {
-        _toastMessage.value = ""
-    }
-
-    private fun updateToastMessage(message: String) {
-        _toastMessage.value = message
-    }
 
     fun updateName(name: String) {
         _formState.value = _formState.value.copy(name = name)
@@ -120,7 +121,7 @@ class PatientFormViewModel @Inject constructor(
                 addPatient(patient)
             }
         } else
-            updateToastMessage(appContext.getString(R.string.add_patient_form_not_valid))
+            sendToast(appContext.getString(R.string.add_patient_form_not_valid))
     }
 
     private suspend fun addPatient(patient: Patient) {
@@ -130,10 +131,10 @@ class PatientFormViewModel @Inject constructor(
         updateInsertionStatus(result)
         when (result) {
             is Resource.Success -> {
-                updateToastMessage(appContext.getString(R.string.add_patient_success))
+                sendToast(appContext.getString(R.string.add_patient_success))
             }
             is Resource.Error -> {
-                updateToastMessage(appContext.getString(R.string.add_patient_error))
+                sendToast(appContext.getString(R.string.add_patient_error))
             }
             else -> {}
         }

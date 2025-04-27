@@ -19,10 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.components.patients.PatientForm
+import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.TitleText
-import com.fiax.hdr.ui.utils.CustomCircularProgressIndicator
+import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
-import com.fiax.hdr.viewmodel.PatientFormViewModel
+import com.fiax.hdr.viewmodel.AddPatientScreenViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,15 +32,15 @@ fun AddPatientScreen(
 ){
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val patientFormViewModel: PatientFormViewModel = hiltViewModel()
-    val insertStatus by patientFormViewModel.insertStatus.collectAsState()
-    val toastMessage by patientFormViewModel.toastMessage.collectAsState()
+    val addPatientScreenViewModel: AddPatientScreenViewModel = hiltViewModel()
+    val insertStatus by addPatientScreenViewModel.insertStatus.collectAsState()
 
-    LaunchedEffect(toastMessage) {
-        if (toastMessage.isNotEmpty()) {
-            toastMessage.let {
-                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                patientFormViewModel.onToastShown() // Reset after showing
+    LaunchedEffect(key1 = true) {
+        addPatientScreenViewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -64,7 +65,7 @@ fun AddPatientScreen(
                         navController.popBackStack()
                     }
                 },
-                patientFormViewModel = patientFormViewModel
+                addPatientScreenViewModel = addPatientScreenViewModel
             )
         }
         when (insertStatus) {

@@ -1,5 +1,6 @@
 package com.fiax.hdr.ui.components.util
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,8 @@ import androidx.compose.ui.Modifier
 fun GenericErrorBoxAndText(
     errorMessage: String? = "Unknown error",
 ){
+    Log.e("GenericErrorBoxAndText", errorMessage ?: "Unknown error")
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

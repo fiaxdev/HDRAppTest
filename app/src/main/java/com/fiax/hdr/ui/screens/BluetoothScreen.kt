@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.fiax.hdr.ui.components.BluetoothPermissionHandler
-import com.fiax.hdr.ui.components.NoPermissionMessage
 import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
+import com.fiax.hdr.ui.components.util.BluetoothPermissionHandler
+import com.fiax.hdr.ui.components.util.NoPermissionMessage
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 import kotlinx.coroutines.launch

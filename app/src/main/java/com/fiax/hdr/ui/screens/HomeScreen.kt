@@ -1,5 +1,6 @@
 package com.fiax.hdr.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -9,17 +10,20 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.components.patients.PatientList
+import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.GenericErrorBoxAndText
 import com.fiax.hdr.ui.navigation.Screen
-import com.fiax.hdr.ui.utils.CustomCircularProgressIndicator
+import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import com.fiax.hdr.viewmodel.HomeScreenViewModel
 
@@ -27,10 +31,21 @@ import com.fiax.hdr.viewmodel.HomeScreenViewModel
 fun HomeScreen(
     navController: NavHostController,
 ) {
+    val context = LocalContext.current
 
     val homeScreenViewModel: HomeScreenViewModel = hiltViewModel()
 
     val patients = homeScreenViewModel.patients.collectAsState()
+
+    LaunchedEffect(key1 = true) {
+        homeScreenViewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Box (
         modifier = Modifier.fillMaxSize()

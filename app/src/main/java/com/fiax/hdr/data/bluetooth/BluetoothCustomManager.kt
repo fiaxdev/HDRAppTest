@@ -18,6 +18,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
+import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.data.model.PatientSerializer
 import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -219,6 +221,22 @@ class BluetoothCustomManager {
         }
     }
 
+    fun sendPatient(socket: BluetoothSocket?, patient: Patient) {
+        if (socket == null) {
+            Log.e("Bluetooth", "Cannot send data: Socket is null")
+            return
+        }
+        try {
+            val outputStream = socket.outputStream
+            val message = PatientSerializer.serialize(patient)
+            outputStream.write(message)
+            outputStream.flush()
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Error sending data: ${e.message}")
+            throw e // Rethrow the exception to let the caller know there was an error
+        }
+    }
+
     fun closeSocket(socket: BluetoothSocket?) {
         try {
             socket?.close()
@@ -265,6 +283,30 @@ class BluetoothCustomManager {
                 else{
                     onMessageReceived(message)
                 }
+            }
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Connection lost: ${e.message}")
+            onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
+        }
+    }
+
+    suspend fun listenForPatient(
+        socket: BluetoothSocket,
+        onPatientReceived: (Patient) -> Unit,
+        onConnectionLost: (String) -> Unit
+    ) {
+        try {
+            val inputStream = socket.inputStream
+            val buffer = ByteArray(1024)
+
+            while (true) { // Keep listening for messages
+                val bytesRead = withContext(Dispatchers.IO) {
+                    inputStream.read(buffer)
+                } // Blocks until data is received
+                val patientBytes = ByteArray(bytesRead)
+                System.arraycopy(buffer, 0, patientBytes, 0, bytesRead)
+                val patient = PatientSerializer.deserialize(patientBytes)
+                onPatientReceived(patient)
             }
         } catch (e: IOException) {
             Log.e("Bluetooth", "Connection lost: ${e.message}")

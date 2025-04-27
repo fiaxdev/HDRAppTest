@@ -27,12 +27,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.fiax.hdr.viewmodel.PatientFormViewModel
+import com.fiax.hdr.viewmodel.AddPatientScreenViewModel
 
 @Composable
 fun PatientForm(
     onCancel: () -> Unit,
-    patientFormViewModel: PatientFormViewModel
+    addPatientScreenViewModel: AddPatientScreenViewModel
 ) {
 
     Column(
@@ -44,21 +44,21 @@ fun PatientForm(
                 .weight(1f)
         ){
             // Text fields
-            TextFieldsColumn(patientFormViewModel)
+            TextFieldsColumn(addPatientScreenViewModel)
 
             // Fade overlay
             FadeOverlay(Modifier.align(Alignment.BottomCenter))
         }
         // Cancel and Save buttons
-        BottomButtons(onCancel, patientFormViewModel)
+        BottomButtons(onCancel, addPatientScreenViewModel)
     }
 }
 
 @Composable
-fun TextFieldsColumn(patientFormViewModel: PatientFormViewModel){
+fun TextFieldsColumn(addPatientScreenViewModel: AddPatientScreenViewModel){
 
-    val errors by patientFormViewModel.errors.collectAsState()
-    val formState by patientFormViewModel.formState.collectAsState()
+    val errors by addPatientScreenViewModel.errors.collectAsState()
+    val formState by addPatientScreenViewModel.formState.collectAsState()
     val scrollState = rememberScrollState()
 
     Column(
@@ -72,13 +72,13 @@ fun TextFieldsColumn(patientFormViewModel: PatientFormViewModel){
         OutlinedTextField(
             value = formState.name,
             isError = errors.nameError != null,
-            onValueChange = { patientFormViewModel.updateName(it) },
+            onValueChange = { addPatientScreenViewModel.updateName(it) },
             label = { Text("Name") }
         )
 
         OutlinedTextField(
             value = formState.age,
-            onValueChange = { patientFormViewModel.updateAge(it) },
+            onValueChange = { addPatientScreenViewModel.updateAge(it) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = errors.ageError != null,
             label = { Text("Age") }
@@ -87,49 +87,49 @@ fun TextFieldsColumn(patientFormViewModel: PatientFormViewModel){
         OutlinedTextField(
             value = formState.sex,
             isError = errors.sexError != null,
-            onValueChange = { patientFormViewModel.updateSex(it) },
+            onValueChange = { addPatientScreenViewModel.updateSex(it) },
             label = { Text("Sex") }
         )
 
         OutlinedTextField(
             value = formState.village,
             isError = errors.villageError != null,
-            onValueChange = { patientFormViewModel.updateVillage(it) },
+            onValueChange = { addPatientScreenViewModel.updateVillage(it) },
             label = { Text("Village") }
         )
 
         OutlinedTextField(
             value = formState.parish,
             isError = errors.parishError != null,
-            onValueChange = { patientFormViewModel.updateParish(it) },
+            onValueChange = { addPatientScreenViewModel.updateParish(it) },
             label = { Text("Parish") }
         )
 
         OutlinedTextField(
             value = formState.subCounty,
             isError = errors.subCountyError != null,
-            onValueChange = { patientFormViewModel.updateSubCounty(it) },
+            onValueChange = { addPatientScreenViewModel.updateSubCounty(it) },
             label = { Text("Sub-County") }
         )
 
         OutlinedTextField(
             value = formState.district,
             isError = errors.districtError != null,
-            onValueChange = { patientFormViewModel.updateDistrict(it) },
+            onValueChange = { addPatientScreenViewModel.updateDistrict(it) },
             label = { Text("District") }
         )
 
         OutlinedTextField(
             value = formState.nextOfKin,
             isError = errors.nextOfKinError != null,
-            onValueChange = { patientFormViewModel.updateNextOfKin(it) },
+            onValueChange = { addPatientScreenViewModel.updateNextOfKin(it) },
             label = { Text("Next of Kin") }
         )
 
         OutlinedTextField(
             value = formState.contact,
             isError = errors.contactError != null,
-            onValueChange = { patientFormViewModel.updateContact(it) },
+            onValueChange = { addPatientScreenViewModel.updateContact(it) },
             label = { Text("Contact") }
         )
         Spacer(modifier = Modifier.height(60.dp)) // Adds breathing room before bottom buttons
@@ -139,7 +139,7 @@ fun TextFieldsColumn(patientFormViewModel: PatientFormViewModel){
 @Composable
 fun BottomButtons(
     onCancel: () -> Unit,
-    patientFormViewModel: PatientFormViewModel
+    addPatientScreenViewModel: AddPatientScreenViewModel
 ) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -155,7 +155,7 @@ fun BottomButtons(
         Spacer(modifier = Modifier.width(16.dp))
         Button(
             onClick = {
-                patientFormViewModel.submitForm()
+                addPatientScreenViewModel.submitForm()
             }
         ) {
             Text("Save")

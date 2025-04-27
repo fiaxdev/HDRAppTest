@@ -1,4 +1,4 @@
-package com.fiax.hdr.ui.utils
+package com.fiax.hdr.ui.components.util
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

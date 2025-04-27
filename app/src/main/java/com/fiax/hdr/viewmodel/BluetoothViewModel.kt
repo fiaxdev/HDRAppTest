@@ -285,6 +285,8 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+
+
     private fun makeDeviceDiscoverable(activity: Activity) {
         ensureBluetoothEnabled(onEnabled = { bluetoothCustomManager.makeDeviceDiscoverable(activity) })
     }

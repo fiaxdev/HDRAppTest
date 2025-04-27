@@ -1,4 +1,4 @@
-package com.fiax.hdr.ui.components
+package com.fiax.hdr.ui.components.util
 
 import android.content.ActivityNotFoundException
 import android.content.Context

@@ -2,6 +2,8 @@ package com.fiax.hdr.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.HDRDatabase
 import com.fiax.hdr.data.local.RoomDataSource
@@ -18,7 +20,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // Provide the RoomDatabase as a singleton
+    // Define migrations
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Migration1-2: image field added for Patient entity
+            db.execSQL("ALTER TABLE patients ADD COLUMN image BLOB DEFAULT NULL")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(
@@ -27,8 +36,10 @@ object AppModule {
         return Room.databaseBuilder(
             context,
             HDRDatabase::class.java,
-            "hdr_database"  // You can change the name as needed
-        ).build()
+            "hdr_database"
+        )
+            .addMigrations(MIGRATION_1_2) // Add migrations here
+            .build()
     }
 
     // Provide RoomDataSource, which will now have the AppDatabase as a parameter
