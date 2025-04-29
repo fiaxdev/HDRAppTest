@@ -1,31 +1,71 @@
 package com.fiax.hdr.ui.components.patients
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.fiax.hdr.data.model.Patient
+import androidx.navigation.NavController
+import com.fiax.hdr.R
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.ui.components.util.TitleText
 
 @Composable
-fun PatientItem(patient: Patient){
+fun PatientItem(patient: Patient, navController: NavController){
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.padding(vertical = 2.dp)
+        modifier = Modifier
+            .clickable(onClick = { /*open Patient info*/})
+            .padding(vertical = 2.dp)
     ){
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = 8.dp)
+                .fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ){
-            TitleText(patient.name)
-            Text(patient.age.toString())
+            Column(
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                TitleText(patient.name, color = MaterialTheme.colorScheme.onSurface)
+                Text(patient.age.toString(), color = MaterialTheme.colorScheme.onSurface)
+            }
+
+            BluetoothButton(patient, navController)
         }
+    }
+}
+
+@Composable
+fun BluetoothButton(patient: Patient, navController: NavController) {
+
+    val route = stringResource(R.string.nav_send_patient)
+
+    IconButton(
+        onClick = {
+            navController.currentBackStackEntry?.savedStateHandle?.set("patient", patient)
+            navController.navigate(route)
+        },
+    ) {
+        Icon(
+            imageVector = Icons.Default.Bluetooth,
+            contentDescription = "Send Patient via Bluetooth",
+            tint = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

@@ -11,24 +11,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.fiax.hdr.ui.components.util.SmallGrayText
-import com.fiax.hdr.viewmodel.BluetoothViewModel
 
 @Composable
-fun DeviceList(bluetoothViewModel: BluetoothViewModel) {
-
-    val pairedDevices by bluetoothViewModel.pairedDevices.collectAsState()
-    val discoveredDevices by bluetoothViewModel.discoveredDevices.collectAsState()
-    val connectionSocket by bluetoothViewModel.connectionSocket.collectAsState()
+fun DeviceList(
+    onClick: (BluetoothDevice) -> Unit,
+    pairedDevices: List<BluetoothDevice>,
+    discoveredDevices: List<BluetoothDevice>,
+    connectionSocket: BluetoothSocket?,
+    modifier: Modifier = Modifier
+) {
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -37,7 +36,7 @@ fun DeviceList(bluetoothViewModel: BluetoothViewModel) {
                 pairedDevices,
                 "Paired Devices",
                 connectionSocket,
-                bluetoothViewModel
+                onClick
             )
         }
 
@@ -46,7 +45,7 @@ fun DeviceList(bluetoothViewModel: BluetoothViewModel) {
                 discoveredDevices,
                 "Discovered Devices",
                 connectionSocket,
-                bluetoothViewModel
+                onClick
             )
         }
     }
@@ -58,7 +57,7 @@ private fun DeviceListBuilder(
     devices: List<BluetoothDevice>,
     devicesType: String,
     connectionSocket: BluetoothSocket?,
-    bluetoothViewModel: BluetoothViewModel
+    onClick: (BluetoothDevice) -> Unit
 ) {
 
     Column(
@@ -78,14 +77,9 @@ private fun DeviceListBuilder(
                 for (device in devices) {
                     DeviceItem(
                         device = device,
-                        bluetoothViewModel = bluetoothViewModel,
+                        connectionSocket = connectionSocket,
                         //connectionSocket = connectionSocket,
-                        onClick = {
-                            if (device == connectionSocket?.remoteDevice)
-                                bluetoothViewModel.disconnect()
-                            else
-                                bluetoothViewModel.connectToDevice(device)
-                        }
+                        onClick = { onClick(device) }
                     )
                 }
             } else

@@ -5,8 +5,6 @@ import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
-import android.content.Intent
-import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.HDRApp
@@ -31,17 +29,9 @@ class BluetoothViewModel @Inject constructor(
 
     private val appContext = HDRApp.getAppContext()
 
-    private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
+    val isDiscovering: StateFlow<Boolean> = bluetoothCustomManager.isDiscovering
 
-    private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
-
-    private val _isDiscovering = MutableStateFlow(false)
-    val isDiscovering: StateFlow<Boolean> = _isDiscovering
-
-    private val _isServerOn = MutableStateFlow(false)
-    val isServerOn: StateFlow<Boolean> = _isServerOn.asStateFlow()
+    val isServerOn: StateFlow<Boolean> = bluetoothCustomManager.isServerOn
 
     // To use if type consistency is needed (instead of .asStateFlow())
     //
@@ -62,15 +52,14 @@ class BluetoothViewModel @Inject constructor(
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
 
-    private val _connectionSocket = MutableStateFlow<BluetoothSocket?>(null)
-    val connectionSocket: StateFlow<BluetoothSocket?> = _connectionSocket
+    val connectionSocket: StateFlow<BluetoothSocket?> = bluetoothCustomManager.connectionSocket
 
 //---------------------------------------Variables managing----------------------------------------------------
 
     // Update state when discovery stops (register receiver in Activity)
-    fun updateDiscoveryState(isDiscovering: Boolean) {
-        _isDiscovering.value = isDiscovering
-    }
+//    fun updateDiscoveryState(isDiscovering: Boolean) {
+//        _isDiscovering.value = isDiscovering
+//    }
 
     // Reset toast message after showing
     fun onToastShown() {
@@ -82,18 +71,18 @@ class BluetoothViewModel @Inject constructor(
     }
 
     // Add discovered device to list if not already in
-    fun addDiscoveredDevice(device: BluetoothDevice) {
-        if (_discoveredDevices.value.contains(device) or
-            _pairedDevices.value.contains(device)
-        )
-            return
-        _discoveredDevices.value += device
-    }
+//    fun addDiscoveredDevice(device: BluetoothDevice) {
+//        if (_discoveredDevices.value.contains(device) or
+//            _pairedDevices.value.contains(device)
+//        )
+//            return
+//        _discoveredDevices.value += device
+//    }
 
     // Set server status
-    private fun updateServerStatus(isServerOn: Boolean) {
-        _isServerOn.value = isServerOn
-    }
+//    private fun updateServerStatus(isServerOn: Boolean) {
+//        _isServerOn.value = isServerOn
+//    }
 
     // Set connection status
     private fun updateConnectionStatus(connectionStatus: String) {
@@ -101,9 +90,9 @@ class BluetoothViewModel @Inject constructor(
     }
 
     // Set connection socket
-    private fun updateConnectionSocket(connectionSocket: BluetoothSocket?) {
-        _connectionSocket.value = connectionSocket
-    }
+//    private fun updateConnectionSocket(connectionSocket: BluetoothSocket?) {
+//        _connectionSocket.value = connectionSocket
+//    }
 
 //---------------------------------------Permissions functionalities-------------------------------------------
     fun updatePermissions(context: Context) {
@@ -113,13 +102,7 @@ class BluetoothViewModel @Inject constructor(
 
   //-------------------------------------Paired devices------------------------------------------------------
     fun getBondedDevices() {
-        ensureBluetoothEnabled(
-            onEnabled = {
-                val pairedDevices = bluetoothCustomManager.getBondedDevices()
-                if (pairedDevices != null)
-                  _pairedDevices.value = pairedDevices.toList()
-            }
-        )
+        bluetoothCustomManager.fetchPairedDevices()
     }
   //-------------------------------------Discovery------------------------------------------------------------
 
@@ -127,7 +110,7 @@ class BluetoothViewModel @Inject constructor(
         ensureBluetoothEnabled(
             onEnabled = {
                 bluetoothCustomManager.startDiscovery()
-                updateDiscoveryState(true)
+                //updateDiscoveryState(true)
                 makeDeviceDiscoverable(activity = activity)
             }
         )
@@ -137,7 +120,7 @@ class BluetoothViewModel @Inject constructor(
         ensureBluetoothEnabled(
             onEnabled = {
                 bluetoothCustomManager.stopDiscovery()
-                updateDiscoveryState(false)
+                //updateDiscoveryState(false)
             }
         )
     }
@@ -155,7 +138,7 @@ class BluetoothViewModel @Inject constructor(
                     socket = bluetoothCustomManager.connectToServer(device)
                     if (socket != null) {
                         updateConnectionStatus("Connected")
-                        updateConnectionSocket(socket)
+//                        updateConnectionSocket(socket)
                         startListeningForMessages(socket!!)
                     } else {
                         updateConnectionStatus("Failed to connect to ${device.name}")
@@ -166,19 +149,19 @@ class BluetoothViewModel @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    suspend fun startServer(activity: Activity): BluetoothSocket? {
+    suspend fun startServer(): BluetoothSocket? {
         return suspendCoroutine { continuation ->
 
             ensureBluetoothEnabled(
                 onEnabled = {
                     viewModelScope.launch(Dispatchers.IO) {
-                        val serverSocket = bluetoothCustomManager.startBluetoothServer()
+                        val serverSocket = bluetoothCustomManager.startServer()
 
                         withContext(Dispatchers.Main) {
                             if (serverSocket != null) {
-                                updateServerStatus(true) // Update UI instantly
+//                                updateServerStatus(true) // Update UI instantly
                                 updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
-                                makeDeviceDiscoverable(activity = activity)
+                                //makeDeviceDiscoverable(activity = activity)
 
                                 // Now wait for a client connection in the background
                                 viewModelScope.launch(Dispatchers.IO) {
@@ -186,7 +169,7 @@ class BluetoothViewModel @Inject constructor(
                                     withContext(Dispatchers.Main) {
                                         if (socket != null) {
                                             updateConnectionStatus("Connected")
-                                            updateConnectionSocket(socket)
+//                                            updateConnectionSocket(socket)
                                             startListeningForMessages(socket)
                                         } else {
                                             updateToastMessage(appContext.getString(R.string.bluetooth_connection_failed))
@@ -196,7 +179,7 @@ class BluetoothViewModel @Inject constructor(
                                 }
 
                             } else {
-                                updateServerStatus(false)
+//                                updateServerStatus(false)
                                 updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
                                 continuation.resume(null)
                             }
@@ -220,11 +203,11 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun stopServer() {
-        bluetoothCustomManager.stopBluetoothServer()
-        updateServerStatus(false)
+        bluetoothCustomManager.stopServer()
+//        updateServerStatus(false)
         updateToastMessage(appContext.getString(R.string.bluetooth_server_stopped))
         updateConnectionStatus("Not connected")
-        updateConnectionSocket(null)
+//        updateConnectionSocket(null)
     }
 
     fun disconnect() {
@@ -238,7 +221,7 @@ class BluetoothViewModel @Inject constructor(
                 //Handle the error, for example notify the user
             } finally{
                 updateConnectionStatus("Not connected")
-                updateConnectionSocket(null)
+//                updateConnectionSocket(null)
             }
         }
     }
@@ -273,7 +256,7 @@ class BluetoothViewModel @Inject constructor(
                 socket = socket,
                 onConnectionLost = {toastMessage ->
                     updateConnectionStatus("Not connected")
-                    updateServerStatus(false)
+//                    updateServerStatus(false)
                     updateToastMessage(toastMessage)
                 },
                 onMessageReceived = { message ->
@@ -289,13 +272,5 @@ class BluetoothViewModel @Inject constructor(
 
     private fun makeDeviceDiscoverable(activity: Activity) {
         ensureBluetoothEnabled(onEnabled = { bluetoothCustomManager.makeDeviceDiscoverable(activity) })
-    }
-
-    fun handleActivityResult(resultCode: Int) {
-        bluetoothCustomManager.handleActivityResult(resultCode)
-    }
-
-    fun setEnableBluetoothLauncher(enableBluetoothLauncher: ActivityResultLauncher<Intent>) {
-        bluetoothCustomManager.setEnableBluetoothLauncher(enableBluetoothLauncher)
     }
 }

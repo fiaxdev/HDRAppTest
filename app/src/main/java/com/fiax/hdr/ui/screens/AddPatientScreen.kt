@@ -75,5 +75,4 @@ fun AddPatientScreen(
             else -> {}
         }
     }
-
 }

@@ -1,11 +1,16 @@
-package com.fiax.hdr.data.model
+package com.fiax.hdr.domain.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+
 
 @Entity(tableName = "patients")
+@Parcelize
 data class Patient (
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(name = "name") var name: String,
@@ -19,7 +24,7 @@ data class Patient (
     @ColumnInfo(name = "contact") var contact: String,
     @ColumnInfo(name = "image") var image: ByteArray? = null
 
-) {
+) : Parcelable {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

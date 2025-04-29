@@ -9,8 +9,11 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -18,15 +21,20 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
-import com.fiax.hdr.data.model.Patient
-import com.fiax.hdr.data.model.PatientSerializer
+import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.domain.model.PatientSerializer
 import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class BluetoothCustomManager {
+@Singleton
+class BluetoothCustomManager @Inject constructor(){
 
     private val appContext = HDRApp.getAppContext()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
@@ -39,20 +47,80 @@ class BluetoothCustomManager {
     private val appName = appContext.getString(R.string.app_name)
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
 
+    private val _isServerOn = MutableStateFlow(false)
+    val isServerOn: StateFlow<Boolean> = _isServerOn
+
+    private val _isDiscovering = MutableStateFlow(false)
+    val isDiscovering: StateFlow<Boolean> = _isDiscovering
+
+    private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
+    val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
+
+    private var _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
+    val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
+
+    private val _connectionSocket = MutableStateFlow<BluetoothSocket?>(null)
+    val connectionSocket: StateFlow<BluetoothSocket?> = _connectionSocket
+
+    private var _enablingResult = MutableStateFlow("")
+    val enablingResult: StateFlow<String> = _enablingResult
+
+    val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
+                    _isDiscovering.value = true
+                }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    _isDiscovering.value = false
+                }
+                BluetoothDevice.ACTION_FOUND -> {
+                    val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    else
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    device?.let {
+                        _discoveredDevices.value += it
+                    }
+                }
+            }
+        }
+    }
+
     // Mutable reference to launcher set by the Activity
     private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
+
+    init {
+        fetchPairedDevices()
+    }
 
     // Setup
     fun setEnableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
         enableBluetoothLauncher = launcher
     }
 
+    private fun updateServerStatus(isServerOn: Boolean) {
+        _isServerOn.value = isServerOn
+    }
+
+    @SuppressLint("MissingPermission")
+    fun fetchPairedDevices(){
+        ensureBluetoothEnabled(
+            onEnabled = {
+                val pairedDevices = bluetoothAdapter?.bondedDevices
+                if (pairedDevices != null)
+                    _pairedDevices.value = pairedDevices.toList()
+            }
+        )
+    }
+
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
         onEnabled: () -> Unit,
-        onDenied: () -> Unit,
-        onNotSupported: () -> Unit,
-        onMissingPermission: () -> Unit,
+        onDenied: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_denied)},
+        onNotSupported: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_not_supported)},
+        onMissingPermission: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_missing_permissions)},
     ) {
         if (!isBluetoothSupported()) {
             onNotSupported()
@@ -101,14 +169,27 @@ class BluetoothCustomManager {
         return bluetoothAdapter?.isEnabled == true
     }
 
-    fun startBluetoothServer(): BluetoothServerSocket? {
+    suspend fun startServer(): BluetoothServerSocket? {
         return try {
             val server = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
                 appName,
                 appUuid
             )
             serverSocket = server
-            Log.d("BluetoothServer", "Server started. Waiting for connection...")
+            if (server != null) {
+                updateServerStatus(true)
+                // Accept client connection in the background (Blocking)
+                withContext(Dispatchers.IO) {
+                    val socket = acceptClientConnection()
+                    setConnectionSocket(socket)
+                    if (socket != null)
+                        listenForPatient(
+                            socket,
+                            onPatientReceived = {},
+                            onConnectionLost = {}
+                        )
+                }
+            }
             server // Return the server socket immediately
         } catch (e: SecurityException) {
             Log.e("BluetoothServer", "Permission denied: ${e.message}")
@@ -135,11 +216,13 @@ class BluetoothCustomManager {
         }
     }
 
-    fun stopBluetoothServer() {
+    fun stopServer() {
         try {
             //disconnect()
             serverSocket?.close() // Close server socket
             serverSocket = null
+            updateServerStatus(false)
+            setConnectionSocket(null)
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -170,8 +253,7 @@ class BluetoothCustomManager {
                 Log.d("BluetoothClient", "Connecting to server...")
                 socket.connect()
                 Log.d("BluetoothClient", "Connected to server!")
-
-
+                setConnectionSocket(socket)
                 socket // Return the connected socket
             } catch (e: SecurityException) {
                 Log.e("BluetoothClient", "Permission denied: ${e.message}")
@@ -240,7 +322,7 @@ class BluetoothCustomManager {
     fun closeSocket(socket: BluetoothSocket?) {
         try {
             socket?.close()
-            Log.d("Bluetooth", "Socket closed successfully.")
+            setConnectionSocket(null)
         } catch (e: IOException) {
             Log.e("Bluetooth", "Error closing socket: ${e.message}")
             throw e // Rethrow to let the caller know about the error
@@ -314,9 +396,18 @@ class BluetoothCustomManager {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun getBondedDevices(): Set<BluetoothDevice>? {
-        return bluetoothAdapter?.bondedDevices
+    fun disconnect(){
+        try {// Send a disconnect message
+            sendData(connectionSocket.value, appContext.getString(R.string.disconnect_request_code))
+            // Close the socket
+            closeSocket(connectionSocket.value)
+        } catch (e: Exception){
+            Log.e("Bluetooth", "Error disconnecting: ${e.message}")
+        }
+    }
+
+    fun setConnectionSocket(socket: BluetoothSocket?){
+        _connectionSocket.value = socket
     }
 
     fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {

@@ -1,17 +1,15 @@
 package com.fiax.hdr.data.repository
 
 import com.fiax.hdr.data.local.RoomDataSource
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.utils.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-interface PatientRepository {
-    suspend fun addPatient(patient: Patient): Resource<Unit>
-    fun getPatients(): Flow<Resource<List<Patient>>>
-}
+
 
 class PatientRepositoryImpl @Inject constructor(
     private val roomDataSource: RoomDataSource

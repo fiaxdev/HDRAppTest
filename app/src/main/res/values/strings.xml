@@ -48,7 +48,7 @@
     <string name="add_patient_success">Patient added successfully</string>
     <string name="add_patient_error">Error: Patient was not added</string>
     <string name="bluetooth_launcher_not_initialized">Launcher not initialized</string>
-
+    <string name="nav_send_patient">send_patient</string>
 
 
 </resources>

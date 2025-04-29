@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -18,7 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.ui.components.patients.PatientList
 import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.GenericErrorBoxAndText
@@ -58,7 +59,7 @@ fun HomeScreen(
 
             is Resource.Loading<*> -> CustomCircularProgressIndicator()
             is Resource.None<*> -> {}
-            is Resource.Success<*> -> PatientList(patients.value.data as List<Patient>)
+            is Resource.Success<*> -> PatientList(patients.value.data as List<Patient>, navController)
         }
 
         AddPatientFAB(
@@ -76,7 +77,9 @@ fun AddPatientFAB(
     FloatingActionButton(
         onClick = { onClick() },
         modifier = modifier.padding(16.dp),
-        elevation = FloatingActionButtonDefaults.elevation(8.dp)
+        elevation = FloatingActionButtonDefaults.elevation(8.dp),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
     ) {
         Icon(
             imageVector = Icons.Default.Add,

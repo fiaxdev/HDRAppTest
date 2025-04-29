@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import kotlinx.coroutines.flow.Flow
 
 @Dao

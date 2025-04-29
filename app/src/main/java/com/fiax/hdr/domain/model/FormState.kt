@@ -1,4 +1,4 @@
-package com.fiax.hdr.data.model
+package com.fiax.hdr.domain.model
 
 data class FormState(
     val name: String = "",

@@ -3,8 +3,8 @@ package com.fiax.hdr.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.data.model.Patient
-import com.fiax.hdr.data.repository.PatientRepository
+import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val patientRepository: PatientRepository,
-    private val bluetoothCustomManager: BluetoothCustomManager
+    private val bluetoothCustomManager: BluetoothCustomManager,
 ): ViewModel() {
 
     // -------------------Toasts--------------------------------
@@ -46,11 +46,6 @@ class HomeScreenViewModel @Inject constructor(
                    _patients.value = patientsList
                 }
         }
-    }
-
-    private fun sendPatient(patient: Patient) {
-        TODO()
-        // bluetoothCustomManager.sendPatient(patient)
     }
 
 //    private fun startListeningForPatients(socket: BluetoothSocket) {

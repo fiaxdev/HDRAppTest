@@ -7,8 +7,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.HDRDatabase
 import com.fiax.hdr.data.local.RoomDataSource
-import com.fiax.hdr.data.repository.PatientRepository
 import com.fiax.hdr.data.repository.PatientRepositoryImpl
+import com.fiax.hdr.domain.repository.PatientRepository
+import com.fiax.hdr.domain.usecase.SendPatientViaBluetoothUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,5 +60,12 @@ object AppModule {
     @Singleton
     fun provideBluetoothCustomManager(): BluetoothCustomManager {
         return BluetoothCustomManager()
+    }
+
+    @Provides
+    fun provideSendPatientUseCase(
+        bluetoothManager: BluetoothCustomManager
+    ): SendPatientViaBluetoothUseCase {
+        return SendPatientViaBluetoothUseCase(bluetoothManager)
     }
 }

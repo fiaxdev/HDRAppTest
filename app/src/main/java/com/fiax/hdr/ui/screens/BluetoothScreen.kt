@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.ui.components.util.BluetoothPermissionHandler
 import com.fiax.hdr.ui.components.util.NoPermissionMessage
 import com.fiax.hdr.ui.components.util.TitleText
@@ -91,7 +90,7 @@ fun BluetoothScreen(navController: NavHostController){
                             if (isServer) {
                                 bluetoothViewModel.stopServer()
                             } else {
-                                bluetoothViewModel.startServer(context as Activity)
+                                bluetoothViewModel.startServer()
                             }
 
                         }
@@ -137,7 +136,7 @@ fun BluetoothScreen(navController: NavHostController){
 
                 Text(text = connectionStatus, style = MaterialTheme.typography.bodyLarge)
 
-                DeviceList(bluetoothViewModel)
+                //DeviceList()
             }
         }
     } else

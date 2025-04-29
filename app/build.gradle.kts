@@ -6,6 +6,7 @@ plugins {
     kotlin("kapt") // ✅ for Hilt
     id("com.google.dagger.hilt.android") // ✅ Hilt plugin
     id("com.google.devtools.ksp") version "2.1.20-2.0.0" // ✅ for Room
+    id("kotlin-parcelize")
 }
 
 android {
@@ -14,8 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.fiax.hdr"
-        minSdk = 23
-        maxSdk = 30
+        minSdk = 29
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
