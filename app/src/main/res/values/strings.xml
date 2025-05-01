@@ -33,7 +33,7 @@
     <string name="serial_connection_uuid">00001101-0000-1000-8000-00805F9B34FB</string>
     <string name="bluetooth_denied">Bluetooth enabling was denied</string>
     <string name="bluetooth_not_supported">Bluetooth is not supported on this device</string>
-    <string name="bluetooth_server_not_started">\"Failed to start server\"</string>
+    <string name="bluetooth_server_not_started">Failed to start bluetooth server,\nyou won\'t be able to receive patients,\nrestart the app and enable bluetooth</string>
     <string name="bluetooth_server_started">Server started</string>
     <string name="bluetooth_server_stopped">Server was stopped</string>
     <string name="missing_bluetooth_permissions">Missing Bluetooth permissions\n</string>

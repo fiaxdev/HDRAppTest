@@ -1,6 +1,7 @@
 package com.fiax.hdr.ui.navigation
 
 import androidx.annotation.StringRes
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -24,12 +25,17 @@ sealed class Screen(val route: String, @StringRes val routeId: Int) {
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState
 ) {
 
-    NavHost(navController = navController, startDestination = stringResource(R.string.nav_home), modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = stringResource(R.string.nav_home),
+        modifier = modifier
+    ) {
 
-        composable(Screen.Home.route){ HomeScreen(navController) }
+        composable(Screen.Home.route){ HomeScreen(navController, snackbarHostState) }
 
         composable(Screen.AddPatient.route){ AddPatientScreen(navController) }
 

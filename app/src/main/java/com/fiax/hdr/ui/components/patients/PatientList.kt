@@ -19,30 +19,35 @@ import com.fiax.hdr.ui.components.util.FadeOverlay
 import com.fiax.hdr.ui.components.util.SmallGrayText
 
 @Composable
-fun PatientList(patients: List<Patient>, navController: NavController) {
+fun PatientList(
+    patients: List<Patient>,
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    title: String = "Patient List",
+) {
     Column (
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(16.dp)
+        modifier = modifier.padding(16.dp)
     ){
         SmallGrayText(
-            text = "Patient List",
-            modifier = Modifier.align(Alignment.Start)
+            text = title,
+            modifier = modifier.align(Alignment.Start)
         )
 
         Box{
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = 2.dp),
                 content = {
                     items(patients) { patient ->
                         PatientItem(patient, navController)
                     }
-                    item { Spacer(Modifier.height(64.dp)) }
+                    item { Spacer(modifier.height(64.dp)) }
                 }
             )
 
             FadeOverlay(
-                modifier = Modifier.align(Alignment.BottomCenter)
+                modifier = modifier.align(Alignment.BottomCenter)
             )
         }
     }

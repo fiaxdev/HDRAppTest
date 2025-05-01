@@ -1,26 +1,18 @@
 package com.fiax.hdr.viewmodel
 
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.utils.PermissionHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
@@ -40,8 +32,8 @@ class BluetoothViewModel @Inject constructor(
 //    private val _connectionStatus = MutableStateFlow("Not connected")
 //    val connectionStatus: StateFlow<String> = _connectionStatus
 
-    private val _connectionStatus = MutableStateFlow("Not connected")
-    val connectionStatus = _connectionStatus.asStateFlow()
+//    private val _connectionStatus = MutableStateFlow("Not connected")
+//    val connectionStatus = _connectionStatus.asStateFlow()
 
     private val _toastMessage = MutableStateFlow("")
     val toastMessage: StateFlow<String> = _toastMessage
@@ -53,6 +45,8 @@ class BluetoothViewModel @Inject constructor(
     val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
 
     val connectionSocket: StateFlow<BluetoothSocket?> = bluetoothCustomManager.connectionSocket
+
+    val connectionStatus: StateFlow<String> = bluetoothCustomManager.connectionStatus
 
 //---------------------------------------Variables managing----------------------------------------------------
 
@@ -85,9 +79,9 @@ class BluetoothViewModel @Inject constructor(
 //    }
 
     // Set connection status
-    private fun updateConnectionStatus(connectionStatus: String) {
-        _connectionStatus.value = connectionStatus
-    }
+//    private fun updateConnectionStatus(connectionStatus: String) {
+//        _connectionStatus.value = connectionStatus
+//    }
 
     // Set connection socket
 //    private fun updateConnectionSocket(connectionSocket: BluetoothSocket?) {
@@ -127,103 +121,87 @@ class BluetoothViewModel @Inject constructor(
 
   //-------------------------------------Connection & Server------------------------------------------------------------
 
-    @SuppressLint("MissingPermission")
-    fun connectToDevice(device: BluetoothDevice) {
+//    @SuppressLint("MissingPermission")
+//    fun connectToDevice(device: BluetoothDevice) {
+//
+//        ensureBluetoothEnabled(
+//            onEnabled = {
+//                _connectionStatus.value = "Connecting..."
+//                var socket: BluetoothSocket?
+//                viewModelScope.launch(Dispatchers.IO) {
+//                    socket = bluetoothCustomManager.connectToServer(device)
+//                    if (socket != null) {
+//                        updateConnectionStatus("Connected")
+////                        updateConnectionSocket(socket)
+//                        startListeningForMessages(socket!!)
+//                    } else {
+//                        updateConnectionStatus("Failed to connect to ${device.name}")
+//                    }
+//                }
+//            }
+//        )
+//    }
 
-        ensureBluetoothEnabled(
-            onEnabled = {
-                _connectionStatus.value = "Connecting..."
-                var socket: BluetoothSocket?
-                viewModelScope.launch(Dispatchers.IO) {
-                    socket = bluetoothCustomManager.connectToServer(device)
-                    if (socket != null) {
-                        updateConnectionStatus("Connected")
-//                        updateConnectionSocket(socket)
-                        startListeningForMessages(socket!!)
-                    } else {
-                        updateConnectionStatus("Failed to connect to ${device.name}")
-                    }
-                }
-            }
-        )
-    }
-
-    @SuppressLint("MissingPermission")
-    suspend fun startServer(): BluetoothSocket? {
-        return suspendCoroutine { continuation ->
-
-            ensureBluetoothEnabled(
-                onEnabled = {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        val serverSocket = bluetoothCustomManager.startServer()
-
-                        withContext(Dispatchers.Main) {
-                            if (serverSocket != null) {
-//                                updateServerStatus(true) // Update UI instantly
-                                updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
-                                //makeDeviceDiscoverable(activity = activity)
-
-                                // Now wait for a client connection in the background
-                                viewModelScope.launch(Dispatchers.IO) {
-                                    val socket = bluetoothCustomManager.acceptClientConnection()
-                                    withContext(Dispatchers.Main) {
-                                        if (socket != null) {
-                                            updateConnectionStatus("Connected")
-//                                            updateConnectionSocket(socket)
-                                            startListeningForMessages(socket)
-                                        } else {
-                                            updateToastMessage(appContext.getString(R.string.bluetooth_connection_failed))
-                                        }
-                                        continuation.resume(socket)
-                                    }
-                                }
-
-                            } else {
-//                                updateServerStatus(false)
-                                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
-                                continuation.resume(null)
-                            }
-                        }
-                    }
-                },
-                onDenied = {
-                    updateToastMessage(appContext.getString(R.string.bluetooth_denied))
-                    continuation.resume(null)
-                },
-                onNotSupported = {
-                    updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))
-                    continuation.resume(null)
-                },
-                onMissingPermission = {
-                    updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))
-                    continuation.resume(null)
-                }
-            )
-        }
-    }
+//    @SuppressLint("MissingPermission")
+//    suspend fun startServer(): BluetoothSocket? {
+//        return suspendCoroutine { continuation ->
+//
+//            ensureBluetoothEnabled(
+//                onEnabled = {
+//                    viewModelScope.launch(Dispatchers.IO) {
+//                        val serverSocket = bluetoothCustomManager.startServer()
+//
+//                        withContext(Dispatchers.Main) {
+//                            if (serverSocket != null) {
+////                                updateServerStatus(true) // Update UI instantly
+//                                updateToastMessage(appContext.getString(R.string.bluetooth_server_started))
+//                                //makeDeviceDiscoverable(activity = activity)
+//
+//                                // Now wait for a client connection in the background
+//                                viewModelScope.launch(Dispatchers.IO) {
+//                                    val socket = bluetoothCustomManager.acceptClientConnection()
+//                                    withContext(Dispatchers.Main) {
+//                                        if (socket != null) {
+//                                            updateConnectionStatus("Connected")
+////                                            updateConnectionSocket(socket)
+//                                            startListeningForMessages(socket)
+//                                        } else {
+//                                            updateToastMessage(appContext.getString(R.string.bluetooth_connection_failed))
+//                                        }
+//                                        continuation.resume(socket)
+//                                    }
+//                                }
+//
+//                            } else {
+////                                updateServerStatus(false)
+//                                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
+//                                continuation.resume(null)
+//                            }
+//                        }
+//                    }
+//                },
+//                onDenied = {
+//                    updateToastMessage(appContext.getString(R.string.bluetooth_denied))
+//                    continuation.resume(null)
+//                },
+//                onNotSupported = {
+//                    updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))
+//                    continuation.resume(null)
+//                },
+//                onMissingPermission = {
+//                    updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))
+//                    continuation.resume(null)
+//                }
+//            )
+//        }
+//    }
 
     fun stopServer() {
         bluetoothCustomManager.stopServer()
 //        updateServerStatus(false)
         updateToastMessage(appContext.getString(R.string.bluetooth_server_stopped))
-        updateConnectionStatus("Not connected")
+        //updateConnectionStatus("Not connected")
 //        updateConnectionSocket(null)
-    }
-
-    fun disconnect() {
-        viewModelScope.launch { // launch a coroutine
-            try {
-                // Send a disconnect message
-                bluetoothCustomManager.sendData(connectionSocket.value, appContext.getString(R.string.disconnect_request_code))
-                // Close the socket
-                bluetoothCustomManager.closeSocket(connectionSocket.value)
-            } catch (e: Exception){
-                //Handle the error, for example notify the user
-            } finally{
-                updateConnectionStatus("Not connected")
-//                updateConnectionSocket(null)
-            }
-        }
     }
 
   //----------------------------------Enabling-------------------------------------
@@ -244,29 +222,18 @@ class BluetoothViewModel @Inject constructor(
   //---------------------------------Permissions--------------------------------------------------------
 
   //-----------------------------------Sending and Receiving------------------------------------------------------------
-    fun sendMessage(socket: BluetoothSocket, message: String) {
-        viewModelScope.launch {
-            bluetoothCustomManager.sendData(socket, message)
-        }
-    }
 
-    private fun startListeningForMessages(socket: BluetoothSocket) {
-        viewModelScope.launch(Dispatchers.IO) {
-            bluetoothCustomManager.listenForData(
-                socket = socket,
-                onConnectionLost = {toastMessage ->
-                    updateConnectionStatus("Not connected")
-//                    updateServerStatus(false)
-                    updateToastMessage(toastMessage)
-                },
-                onMessageReceived = { message ->
-                    viewModelScope.launch {
-                        _receivedMessages.value += message  // Update UI
-                    }
-                }
-            )
-        }
-    }
+//    private fun startListeningForMessages(socket: BluetoothSocket) {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            bluetoothCustomManager.listenForData(
+//                onConnectionLost = {toastMessage ->
+//                    //updateConnectionStatus("Not connected")
+////                    updateServerStatus(false)
+//                    updateToastMessage(toastMessage)
+//                }
+//            )
+//        }
+//    }
 
 
 

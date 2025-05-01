@@ -18,21 +18,35 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val patientRepository: PatientRepository,
-    private val bluetoothCustomManager: BluetoothCustomManager,
+    bluetoothCustomManager: BluetoothCustomManager,
 ): ViewModel() {
 
     // -------------------Toasts--------------------------------
     private val _uiEvent = MutableSharedFlow<UiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    private fun sendToast(message: String) {
+    fun sendToast() {
         viewModelScope.launch {
-            _uiEvent.emit(UiEvent.ShowToast(message))
+            _uiEvent.emit(UiEvent.ShowToast(uiText.value))
+        }
+    }
+
+    fun sendSnackBar() {
+        viewModelScope.launch {
+            _uiEvent.emit(UiEvent.ShowSnackbar(uiText.value))
         }
     }
     // ----------------------Patients-------------------------------
     private val _patients = MutableStateFlow<Resource<List<Patient>>>(Resource.None())
     val patients: StateFlow<Resource<List<Patient>>> = _patients
+
+    val receivedPatients = bluetoothCustomManager.receivedPatients
+
+    // ---------------------Enable bluetooth--------------------------------
+    val enablerResult = bluetoothCustomManager.enablingResult
+
+    private val _uiText = MutableStateFlow("")
+    val uiText: StateFlow<String> = _uiText
 
     init {
         loadPatients()
@@ -46,6 +60,14 @@ class HomeScreenViewModel @Inject constructor(
                    _patients.value = patientsList
                 }
         }
+    }
+
+    fun setUiText(text: String){
+        _uiText.value = text
+    }
+
+    fun clearUiText(){
+        setUiText("")
     }
 
 //    private fun startListeningForPatients(socket: BluetoothSocket) {

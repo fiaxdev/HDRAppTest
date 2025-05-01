@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-
-
 class PatientRepositoryImpl @Inject constructor(
     private val roomDataSource: RoomDataSource
 ) : PatientRepository {
@@ -32,5 +30,4 @@ class PatientRepositoryImpl @Inject constructor(
     }.catch { e ->
         emit(Resource.Error(e.localizedMessage ?: "Unknown error occurred"))
     }
-
 }

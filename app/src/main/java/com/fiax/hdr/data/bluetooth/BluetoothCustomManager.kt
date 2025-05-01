@@ -24,10 +24,15 @@ import com.fiax.hdr.R
 import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.model.PatientSerializer
 import com.fiax.hdr.utils.PermissionHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -41,11 +46,12 @@ class BluetoothCustomManager @Inject constructor(){
         appContext.getSystemService(BluetoothManager::class.java)?.adapter
     }
 
-    private var serverSocket: BluetoothServerSocket? = null
-//    private var connectedSocket: BluetoothSocket? = null
+    private val _receivedPatients = MutableSharedFlow<Patient>()
+    val receivedPatients: SharedFlow<Patient> = _receivedPatients
 
     private val appName = appContext.getString(R.string.app_name)
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
+    private val disconnectCode = appContext.getString(R.string.disconnect_request_code)
 
     private val _isServerOn = MutableStateFlow(false)
     val isServerOn: StateFlow<Boolean> = _isServerOn
@@ -53,15 +59,24 @@ class BluetoothCustomManager @Inject constructor(){
     private val _isDiscovering = MutableStateFlow(false)
     val isDiscovering: StateFlow<Boolean> = _isDiscovering
 
+    // ------------Devices------------------
     private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
 
     private var _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
 
+    // ------------Sockets------------------
     private val _connectionSocket = MutableStateFlow<BluetoothSocket?>(null)
     val connectionSocket: StateFlow<BluetoothSocket?> = _connectionSocket
 
+    private var serverSocket: BluetoothServerSocket? = null
+
+    // ----------------------Connection status----------------------
+    private var _connectionStatus = MutableStateFlow("")
+    val connectionStatus: StateFlow<String> = _connectionStatus
+
+    // -------------Enabling result-----------------
     private var _enablingResult = MutableStateFlow("")
     val enablingResult: StateFlow<String> = _enablingResult
 
@@ -91,8 +106,16 @@ class BluetoothCustomManager @Inject constructor(){
     // Mutable reference to launcher set by the Activity
     private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
 
-    init {
-        fetchPairedDevices()
+    fun initialize(coroutineScope: CoroutineScope){
+        ensureBluetoothEnabled(
+            onEnabled = {
+                fetchPairedDevices()
+                coroutineScope.launch { startServer() }
+            },
+            onDenied = {
+                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+            },
+        )
     }
 
     // Setup
@@ -102,6 +125,18 @@ class BluetoothCustomManager @Inject constructor(){
 
     private fun updateServerStatus(isServerOn: Boolean) {
         _isServerOn.value = isServerOn
+    }
+
+    private fun updateEnablingResult(result: String){
+        _enablingResult.value = result
+    }
+
+    private fun updateConnectionStatus(connectionStatus: String) {
+        _connectionStatus.value = connectionStatus
+    }
+
+    private fun setConnectionSocket(socket: BluetoothSocket?){
+        _connectionSocket.value = socket
     }
 
     @SuppressLint("MissingPermission")
@@ -118,35 +153,49 @@ class BluetoothCustomManager @Inject constructor(){
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
         onEnabled: () -> Unit,
-        onDenied: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_denied)},
-        onNotSupported: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_not_supported)},
-        onMissingPermission: () -> Unit = {_enablingResult.value = appContext.getString(R.string.bluetooth_missing_permissions)},
+        onDenied: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_denied))},
+        onNotSupported: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_not_supported))},
+        onMissingPermission: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_missing_permissions))},
     ) {
         if (!isBluetoothSupported()) {
             onNotSupported()
         } else {
 
             if (PermissionHelper.hasPermissions(context = appContext)){
-                if (!isBluetoothEnabled()) {
-                    // Bluetooth is not enabled, request to enable it
-                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                    // Launch the intent to enable Bluetooth
-                    enableBluetoothLauncher!!.launch(enableBtIntent)
-                    // Save the callback to be used when the result is received
-                    bluetoothEnableCallback = object : BluetoothEnableCallback {
-                        override fun onBluetoothEnabled() {
-                            onEnabled()
-                        }
-
-                        override fun onBluetoothDenied() {
-                            onDenied()
-                        }
-                    }
-                } else
-                    onEnabled()
+                launchIntentIfNotEnabled(
+                    onEnabled = onEnabled,
+                    onDenied = onDenied
+                )
             } else
                 onMissingPermission()
         }
+    }
+
+    private fun launchIntentIfNotEnabled(
+        onEnabled: () -> Unit,
+        onDenied: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_denied))},
+    ) {
+        if (!isBluetoothEnabled()) {
+            launchBluetoothIntent()
+            // Save the callback to be used when the result is received
+            bluetoothEnableCallback = object : BluetoothEnableCallback {
+                override fun onBluetoothEnabled() {
+                    onEnabled()
+                }
+
+                override fun onBluetoothDenied() {
+                    onDenied()
+                }
+            }
+        } else
+            onEnabled()
+    }
+
+    private fun launchBluetoothIntent(){
+        // Bluetooth is not enabled, request to enable it
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        // Launch the intent to enable Bluetooth
+        enableBluetoothLauncher!!.launch(enableBtIntent)
     }
 
     // Handle the Bluetooth enable result in the Activity
@@ -169,35 +218,64 @@ class BluetoothCustomManager @Inject constructor(){
         return bluetoothAdapter?.isEnabled == true
     }
 
-    suspend fun startServer(): BluetoothServerSocket? {
-        return try {
-            val server = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
-                appName,
-                appUuid
-            )
-            serverSocket = server
-            if (server != null) {
-                updateServerStatus(true)
-                // Accept client connection in the background (Blocking)
-                withContext(Dispatchers.IO) {
-                    val socket = acceptClientConnection()
-                    setConnectionSocket(socket)
-                    if (socket != null)
-                        listenForPatient(
-                            socket,
-                            onPatientReceived = {},
-                            onConnectionLost = {}
-                        )
+    private fun attemptStartServer(coroutineScope: CoroutineScope) {
+        ensureBluetoothEnabled(
+            onEnabled = {
+                coroutineScope.launch{
+                    startServer()
                 }
+            },
+            onDenied = {
+                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+            },
+            onNotSupported = {
+            },
+            onMissingPermission = {
             }
-            server // Return the server socket immediately
-        } catch (e: SecurityException) {
-            Log.e("BluetoothServer", "Permission denied: ${e.message}")
-            null
-        } catch (e: IOException) {
-            Log.e("BluetoothServer", "Could not open server socket: ${e.message}")
-            null
+        )
+    }
+
+
+    private suspend fun startServer() {
+
+        var enabled = false
+
+        ensureBluetoothEnabled(
+            onEnabled = {
+                enabled = true
+            },
+            onDenied = {
+                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+            },
+        )
+
+        if (enabled){
+            try {
+                if (isBluetoothEnabled()) {
+                    val server = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+                        appName,
+                        appUuid
+                    )
+                    serverSocket = server
+
+                    updateServerStatus(true)
+                    // Accept client connection in the background (Blocking)
+                    withContext(Dispatchers.IO) {
+                        val socket = acceptClientConnection()
+                        setConnectionSocket(socket)
+                        if (socket != null)
+                            listenForData()
+                    }
+                }
+            } catch (e: SecurityException) {
+                Log.e("BluetoothServer", "Permission denied: ${e.message}")
+                stopServer()
+            } catch (e: IOException) {
+                Log.e("BluetoothServer", "Could not open server socket: ${e.message}")
+                stopServer()
+            }
         }
+
     }
 
     @SuppressLint("MissingPermission")
@@ -218,27 +296,13 @@ class BluetoothCustomManager @Inject constructor(){
 
     fun stopServer() {
         try {
-            //disconnect()
-            serverSocket?.close() // Close server socket
-            serverSocket = null
-            updateServerStatus(false)
-            setConnectionSocket(null)
+            // Close server socket
+            closeServerSocket()
         } catch (e: IOException) {
             e.printStackTrace()
         }
     }
 
-//    fun disconnect() {
-//        try {
-//            // Send a disconnect message to the other device
-//            sendData(connectedSocket!!, appContext.getString(R.string.disconnect_request))
-//            // Close the socket
-//            connectedSocket?.close()
-//            connectedSocket = null
-//        } catch (e: IOException) {
-//            e.printStackTrace()
-//        }
-//    }
     suspend fun connectToServer(device: BluetoothDevice): BluetoothSocket? {
         if (!PermissionHelper.hasPermissions(context = appContext)) {
             Log.e("BluetoothClient", "Missing Bluetooth permissions")
@@ -287,13 +351,13 @@ class BluetoothCustomManager @Inject constructor(){
         }
     }
 
-    fun sendData(socket: BluetoothSocket?, message: String) {
-        if (socket == null) {
+    fun sendData( message: String) {
+        if (connectionSocket.value == null) {
             Log.e("Bluetooth", "Cannot send data: Socket is null")
             return
         }
         try {
-            val outputStream = socket.outputStream
+            val outputStream = connectionSocket.value!!.outputStream
             outputStream.write(message.toByteArray(Charsets.UTF_8))
             outputStream.flush()
             Log.d("Bluetooth", "Message sent: $message")
@@ -303,25 +367,9 @@ class BluetoothCustomManager @Inject constructor(){
         }
     }
 
-    fun sendPatient(socket: BluetoothSocket?, patient: Patient) {
-        if (socket == null) {
-            Log.e("Bluetooth", "Cannot send data: Socket is null")
-            return
-        }
+    fun closeConnectionSocket() {
         try {
-            val outputStream = socket.outputStream
-            val message = PatientSerializer.serialize(patient)
-            outputStream.write(message)
-            outputStream.flush()
-        } catch (e: IOException) {
-            Log.e("Bluetooth", "Error sending data: ${e.message}")
-            throw e // Rethrow the exception to let the caller know there was an error
-        }
-    }
-
-    fun closeSocket(socket: BluetoothSocket?) {
-        try {
-            socket?.close()
+            connectionSocket.value?.close()
             setConnectionSocket(null)
         } catch (e: IOException) {
             Log.e("Bluetooth", "Error closing socket: ${e.message}")
@@ -329,26 +377,22 @@ class BluetoothCustomManager @Inject constructor(){
         }
     }
 
-//    fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit) {
-//        thread {
-//            try {
-//                val inputStream = socket.inputStream
-//                val buffer = ByteArray(1024)
-//                while (true) {
-//                    val bytesRead = inputStream.read(buffer)
-//                    val receivedMessage = String(buffer, 0, bytesRead, Charsets.UTF_8)
-//                    onMessageReceived(receivedMessage)  // Callback to ViewModel
-//                }
-//            } catch (e: IOException) {
-//                Log.e("Bluetooth", "Error receiving data: ${e.message}")
-//            }
-//        }
-//    }
-
-    suspend fun listenForData(socket: BluetoothSocket, onMessageReceived: (String) -> Unit, onConnectionLost: (String) -> Unit) {
+    private fun closeServerSocket() {
         try {
-            val inputStream = socket.inputStream
-            val buffer = ByteArray(1024)
+            serverSocket?.close()
+            serverSocket = null
+            updateServerStatus(false)
+            setConnectionSocket(null)
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Error closing server socket: ${e.message}")
+            throw e // Rethrow to let the caller know about the error
+        }
+    }
+
+    private suspend fun listenForData() {
+        try {
+            val inputStream = connectionSocket.value!!.inputStream
+            val buffer = ByteArray(2048)
 
             while (true) { // Keep listening for messages
                 val bytesRead = withContext(Dispatchers.IO) {
@@ -356,58 +400,72 @@ class BluetoothCustomManager @Inject constructor(){
                 } // Blocks until data is received
                 val message = String(buffer, 0, bytesRead)
 
-                if (message == appContext.getString(R.string.disconnect_request_code)){
-                    onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost_due_to_remote_device_disconnection)) // Notify ViewModel when connection is lost
-                    break
-                }
+                val envelope = Json.decodeFromString(BluetoothEnvelope.serializer(), message)
 
-                // Call a callback to notify ViewModel
-                else{
-                    onMessageReceived(message)
+                when (envelope.type) {
+                    "data" -> {
+                        val patient = PatientSerializer.deserialize(envelope.payload)
+                        _receivedPatients.emit(patient)
+                    }
+                    "code" -> {
+                        when (val command = envelope.payload.toString(Charsets.UTF_8)) {
+                            disconnectCode -> restartServer()
+                            else -> Log.w("Bluetooth", "Unknown command: $command")
+                        }
+                    }
+                    else -> Log.w("Bluetooth", "Unknown type: ${envelope.type}")
                 }
             }
         } catch (e: IOException) {
             Log.e("Bluetooth", "Connection lost: ${e.message}")
-            onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
+            updateConnectionStatus(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
         }
     }
 
-    suspend fun listenForPatient(
-        socket: BluetoothSocket,
-        onPatientReceived: (Patient) -> Unit,
-        onConnectionLost: (String) -> Unit
-    ) {
-        try {
-            val inputStream = socket.inputStream
-            val buffer = ByteArray(1024)
+//    private suspend fun listenForPatients(inputStream: InputStream) {
+//        val buffer = ByteArray(2048) // adjust size as needed
+//
+//        while (true) {
+//            val bytesRead =
+//                withContext(Dispatchers.IO) {
+//                    inputStream.read(buffer)
+//                }
+//            if (bytesRead > 0) {
+//                val data = buffer.copyOfRange(0, bytesRead)
+//
+//                try {
+//                    val patient = PatientSerializer.deserialize(data)
+//                    _receivedPatients.emit(patient) // emit the Patient
+//                } catch (e: Exception) {
+//                    Log.e("BluetoothCustomManager", "Error deserializing patient", e)
+//                }
+//            }
+//        }
+//    }
 
-            while (true) { // Keep listening for messages
-                val bytesRead = withContext(Dispatchers.IO) {
-                    inputStream.read(buffer)
-                } // Blocks until data is received
-                val patientBytes = ByteArray(bytesRead)
-                System.arraycopy(buffer, 0, patientBytes, 0, bytesRead)
-                val patient = PatientSerializer.deserialize(patientBytes)
-                onPatientReceived(patient)
-            }
-        } catch (e: IOException) {
-            Log.e("Bluetooth", "Connection lost: ${e.message}")
-            onConnectionLost(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
-        }
+    private fun restartServer(){
+        stopServer()
+        attemptStartServer(CoroutineScope(Dispatchers.IO))
     }
 
     fun disconnect(){
         try {// Send a disconnect message
-            sendData(connectionSocket.value, appContext.getString(R.string.disconnect_request_code))
+            sendDisconnectionRequest()
             // Close the socket
-            closeSocket(connectionSocket.value)
+            closeConnectionSocket()
         } catch (e: Exception){
             Log.e("Bluetooth", "Error disconnecting: ${e.message}")
         }
     }
 
-    fun setConnectionSocket(socket: BluetoothSocket?){
-        _connectionSocket.value = socket
+    private fun sendDisconnectionRequest(){
+        val commandBytes = disconnectCode.toByteArray(Charsets.UTF_8)
+        val envelope = BluetoothEnvelope(
+            type = "code",
+            payload = commandBytes
+        )
+        val jsonEnvelope = Json.encodeToString(BluetoothEnvelope.serializer(), envelope)
+        sendData(jsonEnvelope)
     }
 
     fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {

@@ -16,41 +16,11 @@ import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    //Bluetooth
-//    private val bluetoothViewModel: BluetoothViewModel by viewModels()
-
     private lateinit var bluetoothCustomManager: BluetoothCustomManager
-
-
-//    private val bluetoothReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context?, intent: Intent?) {
-//            when (intent?.action) {
-//                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
-//                    bluetoothViewModel.updateDiscoveryState(true)
-//                }
-//                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-//                    bluetoothViewModel.updateDiscoveryState(false)
-//                }
-//                BluetoothDevice.ACTION_FOUND -> {
-//                    val device: BluetoothDevice? =
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-//                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-//                        else
-//                            @Suppress("DEPRECATION")
-//                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-//                    device?.let {
-//                        bluetoothViewModel.addDiscoveredDevice(it)
-//                    }
-//                }
-//            }
-//        }
-//    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,9 +39,7 @@ class MainActivity : ComponentActivity() {
 
         bluetoothCustomManager.setEnableBluetoothLauncher(enableBluetoothLauncher)
 
-        lifecycleScope.launch {
-            bluetoothCustomManager.startServer()
-        }
+        bluetoothCustomManager.initialize(lifecycleScope)
 
         enableEdgeToEdge()
 
@@ -94,6 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(bluetoothCustomManager.bluetoothReceiver)
+        bluetoothCustomManager.stopServer()
     }
 }
 

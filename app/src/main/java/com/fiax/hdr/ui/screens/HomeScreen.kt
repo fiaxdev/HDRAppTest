@@ -2,7 +2,9 @@ package com.fiax.hdr.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -10,6 +12,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.ui.components.patients.PatientList
+import com.fiax.hdr.ui.components.patients.RecentlyReceivedPatientList
 import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.GenericErrorBoxAndText
 import com.fiax.hdr.ui.navigation.Screen
@@ -31,6 +35,7 @@ import com.fiax.hdr.viewmodel.HomeScreenViewModel
 @Composable
 fun HomeScreen(
     navController: NavHostController,
+    snackbarHostState: SnackbarHostState
 ) {
     val context = LocalContext.current
 
@@ -38,13 +43,30 @@ fun HomeScreen(
 
     val patients = homeScreenViewModel.patients.collectAsState()
 
+    val receivedPatients = homeScreenViewModel.receivedPatients.collectAsState(initial = null)
+
+    val enablerResult = homeScreenViewModel.enablerResult.collectAsState()
+
+    val uiText = homeScreenViewModel.uiText.collectAsState()
+
     LaunchedEffect(key1 = true) {
         homeScreenViewModel.uiEvent.collect { event ->
             when (event) {
                 is UiEvent.ShowToast -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
+                is UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
             }
+        }
+    }
+
+    LaunchedEffect(key1 = uiText.value){
+        if (enablerResult.value.isNotEmpty()){
+            homeScreenViewModel.setUiText(enablerResult.value)
+            homeScreenViewModel.sendSnackBar()
+            homeScreenViewModel.clearUiText()
         }
     }
 
@@ -52,14 +74,24 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize()
     ){
 
-        when (patients.value) {
-            is Resource.Error<*> -> {
-                GenericErrorBoxAndText((patients.value as Resource.Error).message)
-            }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            RecentlyReceivedPatientList(receivedPatients, navController)
 
-            is Resource.Loading<*> -> CustomCircularProgressIndicator()
-            is Resource.None<*> -> {}
-            is Resource.Success<*> -> PatientList(patients.value.data as List<Patient>, navController)
+            when (patients.value) {
+                is Resource.Error<*> -> {
+                    GenericErrorBoxAndText((patients.value as Resource.Error).message)
+                }
+
+                is Resource.Loading<*> -> CustomCircularProgressIndicator()
+                is Resource.None<*> -> {}
+                is Resource.Success<*> -> PatientList(
+                    patients.value.data as List<Patient>,
+                    navController
+                )
+            }
         }
 
         AddPatientFAB(

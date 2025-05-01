@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 
     kotlin("kapt") // ✅ for Hilt
     id("com.google.dagger.hilt.android") // ✅ Hilt plugin
@@ -70,6 +71,9 @@ dependencies {
     implementation (libs.hilt.android)
     kapt (libs.hilt.compiler) // Annotation processor
     implementation(libs.androidx.hilt.navigation.compose)
+
+    implementation(libs.kotlinx.serialization.json)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

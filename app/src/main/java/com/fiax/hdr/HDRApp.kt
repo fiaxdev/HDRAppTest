@@ -2,6 +2,7 @@ package com.fiax.hdr
 
 import android.app.Application
 import android.content.Context
+import com.fiax.hdr.data.bluetooth.PatientReceiver
 import dagger.hilt.android.HiltAndroidApp
 
 

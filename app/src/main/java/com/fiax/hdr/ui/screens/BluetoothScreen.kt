@@ -90,7 +90,7 @@ fun BluetoothScreen(navController: NavHostController){
                             if (isServer) {
                                 bluetoothViewModel.stopServer()
                             } else {
-                                bluetoothViewModel.startServer()
+                                //bluetoothCustomManager.startServer()
                             }
 
                         }
@@ -106,12 +106,6 @@ fun BluetoothScreen(navController: NavHostController){
                     onValueChange = { sendMessage = it },
                     label = { Text("Enter Message") }
                 )
-
-                Button(onClick = {
-                    connectionSocket?.let { bluetoothViewModel.sendMessage(it, sendMessage) }
-                }) {
-                    Text("Send Message")
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
