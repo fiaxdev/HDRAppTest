@@ -3,7 +3,7 @@ package com.fiax.hdr.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
@@ -40,7 +40,7 @@ class HomeScreenViewModel @Inject constructor(
     private val _patients = MutableStateFlow<Resource<List<Patient>>>(Resource.None())
     val patients: StateFlow<Resource<List<Patient>>> = _patients
 
-    val receivedPatients = bluetoothCustomManager.receivedPatients
+    val receivedPatients = patientRepository.receivedPatients
 
     // ---------------------Enable bluetooth--------------------------------
     val enablerResult = bluetoothCustomManager.enablingResult

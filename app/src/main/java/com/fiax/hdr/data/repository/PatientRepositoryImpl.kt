@@ -1,17 +1,42 @@
 package com.fiax.hdr.data.repository
 
+import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.RoomDataSource
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.utils.Resource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class PatientRepositoryImpl @Inject constructor(
-    private val roomDataSource: RoomDataSource
+    private val roomDataSource: RoomDataSource,
+    private val bluetoothCustomManager: BluetoothCustomManager
 ) : PatientRepository {
+
+    private val _receivedPatients = MutableSharedFlow<Patient>()
+    override val receivedPatients: SharedFlow<Patient> = _receivedPatients.asSharedFlow()
+
+    init {
+        listenForPatients()
+    }
+
+    private fun listenForPatients() {
+        // Listening for Bluetooth patients
+        CoroutineScope(Dispatchers.IO).launch {
+            bluetoothCustomManager.receivedPatients.collect { patient ->
+                _receivedPatients.emit(patient)
+                roomDataSource.insertPatient(patient)
+            }
+        }
+    }
 
     override suspend fun addPatient(patient: Patient): Resource<Unit> {
         return try {

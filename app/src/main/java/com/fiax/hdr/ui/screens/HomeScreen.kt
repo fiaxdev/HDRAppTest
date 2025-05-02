@@ -22,11 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.components.patients.PatientList
 import com.fiax.hdr.ui.components.patients.RecentlyReceivedPatientList
-import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.GenericErrorBoxAndText
+import com.fiax.hdr.ui.components.util.circularprogressindicator.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.navigation.Screen
 import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
@@ -43,7 +43,7 @@ fun HomeScreen(
 
     val patients = homeScreenViewModel.patients.collectAsState()
 
-    val receivedPatients = homeScreenViewModel.receivedPatients.collectAsState(initial = null)
+    val receivedPatients = homeScreenViewModel.receivedPatients.collectAsState(null)
 
     val enablerResult = homeScreenViewModel.enablerResult.collectAsState()
 

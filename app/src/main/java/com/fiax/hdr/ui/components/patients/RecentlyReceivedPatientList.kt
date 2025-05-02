@@ -3,7 +3,7 @@ package com.fiax.hdr.ui.components.patients
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.navigation.NavController
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 
 @Composable
 fun RecentlyReceivedPatientList(

@@ -1,6 +1,6 @@
 package com.fiax.hdr.domain.usecase
 
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import javax.inject.Inject
 

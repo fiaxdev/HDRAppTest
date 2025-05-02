@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.components.patients.PatientForm
-import com.fiax.hdr.ui.components.util.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.components.util.TitleText
+import com.fiax.hdr.ui.components.util.circularprogressindicator.CustomCircularProgressIndicator
 import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import com.fiax.hdr.viewmodel.AddPatientScreenViewModel

@@ -3,7 +3,7 @@ package com.fiax.hdr.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 
 @Database(entities = [Patient::class], version = 2)
 @TypeConverters(Converters::class)

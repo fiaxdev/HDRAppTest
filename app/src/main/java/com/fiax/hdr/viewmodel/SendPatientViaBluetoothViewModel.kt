@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.usecase.SendPatientViaBluetoothUseCase
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SendPatientViaBluetoothViewModel @Inject constructor(
     private val useCase: SendPatientViaBluetoothUseCase,
-    bluetoothCustomManager: BluetoothCustomManager
+    private val bluetoothCustomManager: BluetoothCustomManager
 ) : ViewModel(){
 
     val pairedDevices = bluetoothCustomManager.pairedDevices
@@ -23,6 +23,8 @@ class SendPatientViaBluetoothViewModel @Inject constructor(
     val discoveredDevices = bluetoothCustomManager.discoveredDevices
 
     val connectionSocket = bluetoothCustomManager.connectionSocket
+
+    val isDiscovering = bluetoothCustomManager.isDiscovering
 
     private val _sendPatientResult = MutableStateFlow<Resource<Unit>>(Resource.None())
     val sendPatientResult: MutableStateFlow<Resource<Unit>> = _sendPatientResult
@@ -34,5 +36,11 @@ class SendPatientViaBluetoothViewModel @Inject constructor(
         }
     }
 
+    fun startScan() {
+        bluetoothCustomManager.startDiscovery()
+    }
 
+    fun stopScan(){
+        bluetoothCustomManager.stopDiscovery()
+    }
 }

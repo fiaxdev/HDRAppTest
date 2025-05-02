@@ -9,7 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.fiax.hdr.R
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.screens.AddPatientScreen
 import com.fiax.hdr.ui.screens.BluetoothScreen
 import com.fiax.hdr.ui.screens.HomeScreen
@@ -51,7 +51,7 @@ fun AppNavigation(
             if (patient != null) {
                 SendPatientViaBluetoothScreen(
                     patient = patient,
-                    navHostController = navController
+                    navController = navController
                 )
             }
         }

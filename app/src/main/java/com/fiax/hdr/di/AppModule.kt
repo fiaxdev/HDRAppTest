@@ -9,6 +9,7 @@ import com.fiax.hdr.data.local.HDRDatabase
 import com.fiax.hdr.data.local.RoomDataSource
 import com.fiax.hdr.data.repository.PatientRepositoryImpl
 import com.fiax.hdr.domain.repository.PatientRepository
+import com.fiax.hdr.domain.usecase.InsertPatientLocallyUseCase
 import com.fiax.hdr.domain.usecase.SendPatientViaBluetoothUseCase
 import dagger.Module
 import dagger.Provides
@@ -52,8 +53,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providePatientRepository(roomDataSource: RoomDataSource): PatientRepository {
-        return PatientRepositoryImpl(roomDataSource)
+    fun providePatientRepository(roomDataSource: RoomDataSource, bluetoothManager: BluetoothCustomManager): PatientRepository {
+        return PatientRepositoryImpl(roomDataSource, bluetoothManager)
     }
 
     @Provides
@@ -67,5 +68,12 @@ object AppModule {
         bluetoothManager: BluetoothCustomManager
     ): SendPatientViaBluetoothUseCase {
         return SendPatientViaBluetoothUseCase(bluetoothManager)
+    }
+
+    @Provides
+    fun provideInsertPatientLocallyUseCase(
+        patientRepository: PatientRepository
+    ): InsertPatientLocallyUseCase {
+        return InsertPatientLocallyUseCase(patientRepository)
     }
 }

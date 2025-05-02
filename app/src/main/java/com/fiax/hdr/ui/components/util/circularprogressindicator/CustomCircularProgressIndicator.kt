@@ -1,4 +1,4 @@
-package com.fiax.hdr.ui.components.util
+package com.fiax.hdr.ui.components.util.circularprogressindicator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,9 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
-fun CustomCircularProgressIndicator(){
+fun CustomCircularProgressIndicator(
+    modifier: Modifier = Modifier
+){
     Box(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
@@ -21,7 +24,9 @@ fun CustomCircularProgressIndicator(){
 
     ){
         CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 4.dp,
+            modifier = modifier
         )
     }
 }

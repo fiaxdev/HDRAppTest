@@ -3,13 +3,14 @@ package com.fiax.hdr.data.local
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PatientDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPatient(patient: Patient): Long
 
     @Delete

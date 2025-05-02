@@ -3,8 +3,8 @@ package com.fiax.hdr.domain.usecase
 import android.bluetooth.BluetoothDevice
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.bluetooth.BluetoothEnvelope
-import com.fiax.hdr.domain.model.Patient
-import com.fiax.hdr.domain.model.PatientSerializer
+import com.fiax.hdr.data.mapper.PatientSerializer
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.utils.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

@@ -21,8 +21,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.ContextCompat
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
-import com.fiax.hdr.domain.model.Patient
-import com.fiax.hdr.domain.model.PatientSerializer
+import com.fiax.hdr.data.mapper.PatientSerializer
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -275,7 +275,6 @@ class BluetoothCustomManager @Inject constructor(){
                 stopServer()
             }
         }
-
     }
 
     @SuppressLint("MissingPermission")
@@ -331,13 +330,17 @@ class BluetoothCustomManager @Inject constructor(){
 
     @SuppressLint("MissingPermission")
     fun startDiscovery() {
-        if (bluetoothAdapter?.isDiscovering == true) {
-            bluetoothAdapter?.cancelDiscovery()
-            Handler(Looper.getMainLooper()).postDelayed({
-                bluetoothAdapter?.startDiscovery()
-            }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
-        } else
-            bluetoothAdapter?.startDiscovery()
+        ensureBluetoothEnabled(
+            onEnabled = {
+                if (bluetoothAdapter?.isDiscovering == true) {
+                    bluetoothAdapter?.cancelDiscovery()
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        bluetoothAdapter?.startDiscovery()
+                    }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
+                } else
+                    bluetoothAdapter?.startDiscovery()
+            }
+        )
     }
 
     // Stop discovery
@@ -367,7 +370,7 @@ class BluetoothCustomManager @Inject constructor(){
         }
     }
 
-    fun closeConnectionSocket() {
+    private fun closeConnectionSocket() {
         try {
             connectionSocket.value?.close()
             setConnectionSocket(null)

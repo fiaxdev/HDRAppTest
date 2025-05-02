@@ -4,7 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
@@ -20,22 +20,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.fiax.hdr.R
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.components.util.TitleText
 
 @Composable
-fun PatientItem(patient: Patient, navController: NavController){
+fun PatientItem(
+    patient: Patient,
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    hideBluetoothButton: Boolean = false,
+    onClick: () -> Unit = {}
+){
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .clickable(onClick = { /*open Patient info*/})
+        modifier = modifier
+            .clickable(onClick = onClick)
             .padding(vertical = 2.dp)
     ){
         Row(
             modifier = Modifier
                 .padding(horizontal = 8.dp)
-                .fillMaxSize(),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ){
@@ -46,7 +52,8 @@ fun PatientItem(patient: Patient, navController: NavController){
                 Text(patient.age.toString(), color = MaterialTheme.colorScheme.onSurface)
             }
 
-            BluetoothButton(patient, navController)
+            if (!hideBluetoothButton)
+                BluetoothButton(patient, navController)
         }
     }
 }

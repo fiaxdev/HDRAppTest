@@ -1,4 +1,4 @@
-package com.fiax.hdr.domain.model
+package com.fiax.hdr.data.model
 
 import android.os.Parcelable
 import androidx.room.ColumnInfo

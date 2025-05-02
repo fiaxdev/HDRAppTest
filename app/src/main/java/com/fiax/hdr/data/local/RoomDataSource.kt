@@ -1,6 +1,6 @@
 package com.fiax.hdr.data.local
 
-import com.fiax.hdr.domain.model.Patient
+import com.fiax.hdr.data.model.Patient
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
