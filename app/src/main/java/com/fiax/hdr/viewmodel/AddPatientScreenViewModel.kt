@@ -3,19 +3,15 @@ package com.fiax.hdr.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.HDRApp
-import com.fiax.hdr.R
 import com.fiax.hdr.data.model.FormErrors
 import com.fiax.hdr.data.model.FormState
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
-import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,14 +23,14 @@ class AddPatientScreenViewModel @Inject constructor(
     private val appContext = HDRApp.getAppContext()
 
     // -------------------Toasts--------------------------------
-    private val _uiEvent = MutableSharedFlow<UiEvent>()
-    val uiEvent = _uiEvent.asSharedFlow()
-
-    private fun sendToast(message: String) {
-        viewModelScope.launch {
-            _uiEvent.emit(UiEvent.ShowToast(message))
-        }
-    }
+//    private val _uiEvent = MutableSharedFlow<UiEvent>()
+//    val uiEvent = _uiEvent.asSharedFlow()
+//
+//    private fun sendToast(message: String) {
+//        viewModelScope.launch {
+//            _uiEvent.emit(UiEvent.ShowToast(message))
+//        }
+//    }
 
     private val _formState = MutableStateFlow(FormState())
     val formState: StateFlow<FormState> = _formState
@@ -120,8 +116,8 @@ class AddPatientScreenViewModel @Inject constructor(
             viewModelScope.launch {
                 addPatient(patient)
             }
-        } else
-            sendToast(appContext.getString(R.string.add_patient_form_not_valid))
+        } //else
+//            sendToast(appContext.getString(R.string.add_patient_form_not_valid))
     }
 
     private suspend fun addPatient(patient: Patient) {
@@ -131,10 +127,10 @@ class AddPatientScreenViewModel @Inject constructor(
         updateInsertionStatus(result)
         when (result) {
             is Resource.Success -> {
-                sendToast(appContext.getString(R.string.add_patient_success))
+//                sendToast(appContext.getString(R.string.add_patient_success))
             }
             is Resource.Error -> {
-                sendToast(appContext.getString(R.string.add_patient_error))
+//                sendToast(appContext.getString(R.string.add_patient_error))
             }
             else -> {}
         }

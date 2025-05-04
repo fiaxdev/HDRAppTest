@@ -24,6 +24,9 @@ class PatientRepositoryImpl @Inject constructor(
     private val _receivedPatients = MutableSharedFlow<Patient>()
     override val receivedPatients: SharedFlow<Patient> = _receivedPatients.asSharedFlow()
 
+    private val _newPatientEvents = MutableSharedFlow<Patient>()
+    override val newPatientEvents: SharedFlow<Patient> = _newPatientEvents.asSharedFlow()
+
     init {
         listenForPatients()
     }
@@ -34,6 +37,7 @@ class PatientRepositoryImpl @Inject constructor(
             bluetoothCustomManager.receivedPatients.collect { patient ->
                 _receivedPatients.emit(patient)
                 roomDataSource.insertPatient(patient)
+                _newPatientEvents.emit(patient)
             }
         }
     }

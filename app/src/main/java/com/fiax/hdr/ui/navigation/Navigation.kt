@@ -1,7 +1,6 @@
 package com.fiax.hdr.ui.navigation
 
 import androidx.annotation.StringRes
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -13,6 +12,7 @@ import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.screens.AddPatientScreen
 import com.fiax.hdr.ui.screens.BluetoothScreen
 import com.fiax.hdr.ui.screens.HomeScreen
+import com.fiax.hdr.ui.screens.PatientDetailsScreen
 import com.fiax.hdr.ui.screens.SendPatientViaBluetoothScreen
 
 sealed class Screen(val route: String, @StringRes val routeId: Int) {
@@ -20,13 +20,13 @@ sealed class Screen(val route: String, @StringRes val routeId: Int) {
     data object AddPatient : Screen("add_patient", R.string.nav_add_patient)
     data object Bluetooth : Screen("bluetooth", R.string.nav_bluetooth)
     data object SendPatient : Screen("send_patient", R.string.nav_send_patient)
+    data object PatientDetails : Screen("patient_details", R.string.nav_patient_details)
 }
 
 @Composable
 fun AppNavigation(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    snackbarHostState: SnackbarHostState
 ) {
 
     NavHost(
@@ -35,7 +35,7 @@ fun AppNavigation(
         modifier = modifier
     ) {
 
-        composable(Screen.Home.route){ HomeScreen(navController, snackbarHostState) }
+        composable(Screen.Home.route){ HomeScreen(navController) }
 
         composable(Screen.AddPatient.route){ AddPatientScreen(navController) }
 
@@ -56,7 +56,23 @@ fun AppNavigation(
             }
         }
 
+        composable(Screen.PatientDetails.route){
+            // Get the patient from SavedStateHandle
+            val patient = navController
+                .previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<Patient>("patient")
+
+            if (patient != null) {
+                PatientDetailsScreen(
+                    patient = patient,
+                    navController = navController
+                )
+            }
+        }
     }
 }
+
+
 
 

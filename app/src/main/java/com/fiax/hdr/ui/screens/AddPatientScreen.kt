@@ -1,6 +1,5 @@
 package com.fiax.hdr.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -21,7 +19,6 @@ import androidx.navigation.NavHostController
 import com.fiax.hdr.ui.components.patients.PatientForm
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.ui.components.util.circularprogressindicator.CustomCircularProgressIndicator
-import com.fiax.hdr.ui.utils.UiEvent
 import com.fiax.hdr.utils.Resource
 import com.fiax.hdr.viewmodel.AddPatientScreenViewModel
 import kotlinx.coroutines.launch
@@ -35,18 +32,18 @@ fun AddPatientScreen(
     val addPatientScreenViewModel: AddPatientScreenViewModel = hiltViewModel()
     val insertStatus by addPatientScreenViewModel.insertStatus.collectAsState()
 
-    LaunchedEffect(key1 = true) {
-        addPatientScreenViewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.ShowToast -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                }
-                is UiEvent.ShowSnackbar -> {
-                    // Handle snackbar event
-                }
-            }
-        }
-    }
+//    LaunchedEffect(key1 = true) {
+//        addPatientScreenViewModel.uiEvent.collect { event ->
+//            when (event) {
+//                is UiEvent.ShowToast -> {
+//                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+//                }
+//                is UiEvent.ShowSnackbar -> {
+//                    // Handle snackbar event
+//                }
+//            }
+//        }
+//    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
