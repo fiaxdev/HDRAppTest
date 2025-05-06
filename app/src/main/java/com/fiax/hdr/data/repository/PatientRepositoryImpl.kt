@@ -35,8 +35,16 @@ class PatientRepositoryImpl @Inject constructor(
         // Listening for Bluetooth patients
         CoroutineScope(Dispatchers.IO).launch {
             bluetoothCustomManager.receivedPatients.collect { patient ->
+                var result = addPatient(patient)
+                if (result is Resource.Error) {
+                    // Try once more
+                    result = addPatient(patient)
+                    if (result is Resource.Error) {
+                        // If still fails, log the error
+                        return@collect
+                    }
+                }
                 _receivedPatients.emit(patient)
-                roomDataSource.insertPatient(patient)
                 _newPatientEvents.emit(patient)
             }
         }

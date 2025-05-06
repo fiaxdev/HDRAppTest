@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -39,7 +40,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class BluetoothCustomManager @Inject constructor(){
+class BluetoothCustomManager @Inject constructor(
+    private val activityProvider: ActivityProvider
+){
 
     private val appContext = HDRApp.getAppContext()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
@@ -76,18 +79,26 @@ class BluetoothCustomManager @Inject constructor(){
     private var _connectionStatus = MutableStateFlow("")
     val connectionStatus: StateFlow<String> = _connectionStatus
 
-    // -------------Enabling result-----------------
-    private var _enablingResult = MutableStateFlow("")
-    val enablingResult: StateFlow<String> = _enablingResult
+    // ---------------------Permissions----------------------
+    private val _hasPermissions = MutableStateFlow(false)
+    val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
+
+    // -------------Toast message-----------------
+    private var _toastMessage = MutableStateFlow("")
+    val toastMessage: StateFlow<String> = _toastMessage
+
+    // ------------Snackbar message-----------------
+    private var _snackbarMessage = MutableStateFlow("")
+    val snackbarMessage: StateFlow<String> = _snackbarMessage
 
     val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
-                    _isDiscovering.value = true
+                    updateDiscoveryStatus(true)
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    _isDiscovering.value = false
+                    updateDiscoveryStatus(false)
                 }
                 BluetoothDevice.ACTION_FOUND -> {
                     val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
@@ -96,7 +107,19 @@ class BluetoothCustomManager @Inject constructor(){
                         @Suppress("DEPRECATION")
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     device?.let {
-                        _discoveredDevices.value += it
+                        addDiscoveredDevice(it)
+                    }
+                }
+                BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    when (state) {
+                        BluetoothAdapter.STATE_OFF -> {
+                            updateSnackbarMessage(appContext.getString(R.string.bluetooth_turning_off))
+                            deinitialize()
+                        }
+                        BluetoothAdapter.STATE_ON -> {
+                            initialize(CoroutineScope(Dispatchers.IO))
+                        }
                     }
                 }
             }
@@ -113,9 +136,15 @@ class BluetoothCustomManager @Inject constructor(){
                 coroutineScope.launch { startServer() }
             },
             onDenied = {
-                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
             },
         )
+    }
+
+    fun deinitialize() {
+        stopServer()
+        emptyPairedDevices()
+        emptyDiscoveredDevices()
     }
 
     // Setup
@@ -127,8 +156,16 @@ class BluetoothCustomManager @Inject constructor(){
         _isServerOn.value = isServerOn
     }
 
-    private fun updateEnablingResult(result: String){
-        _enablingResult.value = result
+    private fun updateDiscoveryStatus(isDiscovering: Boolean) {
+        _isDiscovering.value = isDiscovering
+    }
+
+    private fun updateToastMessage(message: String){
+        _toastMessage.value = message
+    }
+
+    private fun updateSnackbarMessage(message: String){
+        _snackbarMessage.value = message
     }
 
     private fun updateConnectionStatus(connectionStatus: String) {
@@ -137,6 +174,10 @@ class BluetoothCustomManager @Inject constructor(){
 
     private fun setConnectionSocket(socket: BluetoothSocket?){
         _connectionSocket.value = socket
+    }
+
+    fun updatePermissions(context: Context) {
+        _hasPermissions.value = PermissionHelper.hasPermissions(context)
     }
 
     @SuppressLint("MissingPermission")
@@ -150,12 +191,25 @@ class BluetoothCustomManager @Inject constructor(){
         )
     }
 
+    private fun emptyPairedDevices(){
+        _pairedDevices.value = emptyList()
+    }
+
+    private fun emptyDiscoveredDevices() {
+        _discoveredDevices.value = emptyList()
+    }
+
+    private fun addDiscoveredDevice(device: BluetoothDevice){
+        if (!_discoveredDevices.value.contains(device))
+            _discoveredDevices.value += device
+    }
+
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
         onEnabled: () -> Unit,
-        onDenied: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_denied))},
-        onNotSupported: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_not_supported))},
-        onMissingPermission: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_missing_permissions))},
+        onDenied: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_denied))},
+        onNotSupported: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_not_supported))},
+        onMissingPermission: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_missing_permissions))},
     ) {
         if (!isBluetoothSupported()) {
             onNotSupported()
@@ -173,7 +227,7 @@ class BluetoothCustomManager @Inject constructor(){
 
     private fun launchIntentIfNotEnabled(
         onEnabled: () -> Unit,
-        onDenied: () -> Unit = {updateEnablingResult(appContext.getString(R.string.bluetooth_denied))},
+        onDenied: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_denied))},
     ) {
         if (!isBluetoothEnabled()) {
             launchBluetoothIntent()
@@ -226,7 +280,7 @@ class BluetoothCustomManager @Inject constructor(){
                 }
             },
             onDenied = {
-                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
             },
             onNotSupported = {
             },
@@ -245,7 +299,7 @@ class BluetoothCustomManager @Inject constructor(){
                 enabled = true
             },
             onDenied = {
-                updateEnablingResult(appContext.getString(R.string.bluetooth_server_not_started))
+                updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
             },
         )
 
@@ -297,6 +351,7 @@ class BluetoothCustomManager @Inject constructor(){
         try {
             // Close server socket
             closeServerSocket()
+            updateServerStatus(false)
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -337,6 +392,9 @@ class BluetoothCustomManager @Inject constructor(){
                     Handler(Looper.getMainLooper()).postDelayed({
                         bluetoothAdapter?.startDiscovery()
                     }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
+                    activityProvider.useActivity { activity ->
+                        makeDeviceDiscoverable(activity, 30)
+                    }
                 } else
                     bluetoothAdapter?.startDiscovery()
             }

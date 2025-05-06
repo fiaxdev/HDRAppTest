@@ -29,8 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.utils.PermissionHelper
-import com.fiax.hdr.viewmodel.BluetoothViewModel
 
 @Composable
 fun BluetoothPermissionHandler(
@@ -124,7 +124,7 @@ fun GoToSettingsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Composable
 fun NoPermissionMessage(
     context: Context,
-    bluetoothViewModel: BluetoothViewModel,
+    bluetoothManager: BluetoothCustomManager,
     onBack: () -> Unit
 ) {
     var showRationale by remember { mutableStateOf(false) }
@@ -135,7 +135,7 @@ fun NoPermissionMessage(
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             if (results.all { it.value }) {
-                bluetoothViewModel.updatePermissions(context)
+                bluetoothManager.updatePermissions(context)
             } else {
                 showSettingsDialog = true
             }

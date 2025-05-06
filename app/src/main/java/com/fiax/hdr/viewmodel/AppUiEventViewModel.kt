@@ -3,6 +3,7 @@ package com.fiax.hdr.viewmodel
 import android.os.Parcelable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.ui.navigation.Screen
@@ -19,26 +20,40 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppUiEventViewModel @Inject constructor(
-    patientRepository: PatientRepository
+    patientRepository: PatientRepository,
+    bluetoothCustomManager: BluetoothCustomManager
 ) : ViewModel() {
 
     private val _uiEvents = MutableSharedFlow<UiEvent>()
     val uiEvents: SharedFlow<UiEvent> = _uiEvents.asSharedFlow()
 
-    private val route = Screen.PatientDetails.route
-
     init {
         patientRepository.newPatientEvents
-            //.map { patient -> "New patient received: ${patient.name}" }
             .onEach { patient ->
                 showReceivedPatientSnackbar(patient)
             }
             .launchIn(viewModelScope)
     }
 
+    init {
+        bluetoothCustomManager.toastMessage
+            .onEach { message ->
+                sendEvent(UiEvent.ShowToast(message))
+            }
+            .launchIn(viewModelScope)
+    }
+
+    init {
+        bluetoothCustomManager.snackbarMessage
+            .onEach { message ->
+                sendEvent(UiEvent.ShowSnackbar(message))
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun showReceivedPatientSnackbar(patient: Patient) {
         viewModelScope.launch {
-            _uiEvents.emit(
+            sendEvent(
                 UiEvent.ShowSnackbar(
                     message = "New patient received",
                     actionLabel = "View",
@@ -53,7 +68,8 @@ class AppUiEventViewModel @Inject constructor(
     }
 
     private suspend fun emitNavigateToPatient(patient: Patient) {
-        _uiEvents.emit(UiEvent.NavigateWithData(route, "patient", patient))
+        val route = Screen.PatientDetails.route
+        sendEvent(UiEvent.NavigateWithData(route, "patient", patient))
     }
 
     suspend fun sendEvent(event: UiEvent) {

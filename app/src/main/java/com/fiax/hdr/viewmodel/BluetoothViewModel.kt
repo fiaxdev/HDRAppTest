@@ -2,16 +2,13 @@ package com.fiax.hdr.viewmodel
 
 import android.app.Activity
 import android.bluetooth.BluetoothSocket
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.utils.PermissionHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,8 +38,7 @@ class BluetoothViewModel @Inject constructor(
     private val _receivedMessages = MutableStateFlow("")
     val receivedMessages: StateFlow<String> = _receivedMessages
 
-    private val _hasPermissions = MutableStateFlow(false)
-    val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
+
 
     val connectionSocket: StateFlow<BluetoothSocket?> = bluetoothCustomManager.connectionSocket
 
@@ -89,9 +85,9 @@ class BluetoothViewModel @Inject constructor(
 //    }
 
 //---------------------------------------Permissions functionalities-------------------------------------------
-    fun updatePermissions(context: Context) {
-        _hasPermissions.value = PermissionHelper.hasPermissions(context)
-    }
+//    fun updatePermissions(context: Context) {
+//        _hasPermissions.value = PermissionHelper.hasPermissions(context)
+//    }
 //---------------------------------------Bluetooth functionalities---------------------------------------------
 
   //-------------------------------------Paired devices------------------------------------------------------

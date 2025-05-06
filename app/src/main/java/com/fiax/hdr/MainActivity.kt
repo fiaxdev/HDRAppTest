@@ -10,7 +10,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.fiax.hdr.data.bluetooth.ActivityProvider
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
+import com.fiax.hdr.di.ActivityProviderEntryPoint
 import com.fiax.hdr.di.BluetoothManagerEntryPoint
 import com.fiax.hdr.ui.components.scaffold.MainScaffold
 import com.fiax.hdr.ui.theme.HDRTheme
@@ -20,10 +22,19 @@ import dagger.hilt.android.EntryPointAccessors
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    private lateinit var activityProvider: ActivityProvider
+
     private lateinit var bluetoothCustomManager: BluetoothCustomManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        activityProvider = EntryPointAccessors.fromActivity(
+            this,
+            ActivityProviderEntryPoint::class.java
+        ).activityProvider()
+
+        activityProvider.setActivity(this)
 
         bluetoothCustomManager = EntryPointAccessors.fromActivity(
             this,
@@ -46,7 +57,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             HDRTheme {
                 val navController = rememberNavController()
-                MainScaffold(navController)
+                MainScaffold(navController, bluetoothCustomManager)
             }
         }
 
@@ -55,6 +66,7 @@ class MainActivity : ComponentActivity() {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
             addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         }
         registerReceiver(bluetoothCustomManager.bluetoothReceiver, filter)
     }
@@ -63,6 +75,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         unregisterReceiver(bluetoothCustomManager.bluetoothReceiver)
         bluetoothCustomManager.stopServer()
+        activityProvider.setActivity(null)
     }
 }
 

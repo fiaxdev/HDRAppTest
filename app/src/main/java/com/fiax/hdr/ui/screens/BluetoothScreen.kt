@@ -28,8 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.fiax.hdr.ui.components.util.BluetoothPermissionHandler
-import com.fiax.hdr.ui.components.util.NoPermissionMessage
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.viewmodel.BluetoothViewModel
 import kotlinx.coroutines.launch
@@ -49,7 +47,7 @@ fun BluetoothScreen(navController: NavHostController){
     val isScanning by bluetoothViewModel.isDiscovering.collectAsState()
     val toastMessage by bluetoothViewModel.toastMessage.collectAsState()
     val receivedMessage by bluetoothViewModel.receivedMessages.collectAsState()
-    val hasPermission by bluetoothViewModel.hasPermissions.collectAsState()
+    //val hasPermission by bluetoothViewModel.hasPermissions.collectAsState()
     val connectionStatus by bluetoothViewModel.connectionStatus.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -65,15 +63,9 @@ fun BluetoothScreen(navController: NavHostController){
         }
     }
 
-    // Handles permission requests before showing the UI
-    BluetoothPermissionHandler(
-        context = context,
-        onPermissionGranted = {
-            bluetoothViewModel.updatePermissions(context)
-        }
-    )
 
-    if (hasPermission) {
+
+    //if (hasPermission) {
         Box {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -133,6 +125,6 @@ fun BluetoothScreen(navController: NavHostController){
                 //DeviceList()
             }
         }
-    } else
-        NoPermissionMessage(context, bluetoothViewModel, onBack = { navController.popBackStack() })
+//    } else
+//        NoPermissionMessage(context, bluetoothViewModel, onBack = { navController.popBackStack() })
 }

@@ -2,7 +2,6 @@ package com.fiax.hdr.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fiax.hdr.HDRApp
 import com.fiax.hdr.data.model.FormErrors
 import com.fiax.hdr.data.model.FormState
 import com.fiax.hdr.data.model.Patient
@@ -19,8 +18,6 @@ import javax.inject.Inject
 class AddPatientScreenViewModel @Inject constructor(
     private val patientRepository: PatientRepository,
 ): ViewModel(){
-
-    private val appContext = HDRApp.getAppContext()
 
     // -------------------Toasts--------------------------------
 //    private val _uiEvent = MutableSharedFlow<UiEvent>()

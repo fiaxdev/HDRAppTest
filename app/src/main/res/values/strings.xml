@@ -10,46 +10,32 @@
     <string name="nav_home">home</string>
     <string name="nav_add_patient">add_patient</string>
     <string name="nav_bluetooth">bluetooth</string>
+    <string name="nav_send_patient">send_patient</string>
+    <string name="nav_patient_details">patient_details\n</string>
 
     <!-- Home Screen -->
-    <string name="write_nfc">Write to NFC</string>
-    <string name="enter_message">Enter message</string>
-    <string name="write_nfc_button">Write to NFC Tag</string>
-    <string name="go_to_read_screen">Go to Read Screen</string>
-
-    <!-- Read Screen -->
-    <string name="read_nfc">Read NFC Data</string>
-    <string name="message">Message:</string>
-    <string name="back_to_home">Back to Home</string>
 
     <!-- Toast Messages -->
-    <string name="nfc_write_success">NFC Tag Written!</string>
-    <string name="nfc_read_success">Read from NFC:</string>
-    <string name="nfc_write_fail">Failed to write NFC tag</string>
-    <string name="nfc_read_fail">Failed to read NFC tag</string>
-    <string name="nfc_tap_to_write">Tap NFC tag to write!</string>
-    <string name="nfc_read_only">NFC Tag is read-only</string>
-    <string name="nfc_not_supported">NFC Tag is not NDEF-compatible</string>
-    <string name="serial_connection_uuid">00001101-0000-1000-8000-00805F9B34FB</string>
-    <string name="bluetooth_denied">Bluetooth enabling was denied</string>
+    <string name="bluetooth_denied">Bluetooth enabling was denied,\nyou won\'t be able to receive patients,\nrestart the app and enable bluetooth</string>
     <string name="bluetooth_not_supported">Bluetooth is not supported on this device</string>
-    <string name="bluetooth_server_not_started">Failed to start bluetooth server,\nyou won\'t be able to receive patients,\nrestart the app and enable bluetooth</string>
+    <string name="bluetooth_server_not_started">Failed to start bluetooth server,\nyou won\'t be able to receive patients,\nplease enable bluetooth</string>
     <string name="bluetooth_server_started">Server started</string>
     <string name="bluetooth_server_stopped">Server was stopped</string>
-    <string name="missing_bluetooth_permissions">Missing Bluetooth permissions\n</string>
-    <string name="bluetooth_missing_permissions">Missing necessary bluetooth permissions</string>
+    <string name="bluetooth_missing_permissions">Missing bluetooth permissions</string>
     <string name="bluetooth_permission_denied">Bluetooth features won\'t work without permission!</string>
     <string name="bluetooth_connection_failed">Bluetooth connection failed</string>
     <string name="bluetooth_connection_lost">Connection was lost</string>
-    <string name="disconnect_request_code">DISCONNECT</string>
     <string name="bluetooth_connection_lost_due_to_remote_device_disconnection">The connected device has disconnected</string>
     <string name="bluetooth_connection_lost_due_to_IOexception">Connection lost due to an unexpected error</string>
     <string name="add_patient_form_not_valid">Saving failed, fill in mandatory fields</string>
     <string name="add_patient_success">Patient added successfully</string>
     <string name="add_patient_error">Error: Patient was not added</string>
     <string name="bluetooth_launcher_not_initialized">Launcher not initialized</string>
-    <string name="nav_send_patient">send_patient</string>
-    <string name="nav_patient_details">patient_details\n</string>
+
+    <string name="bluetooth_turning_off">Bluetooth was turned off, several features won\'t be available</string>
+
+    <!-- Bluetooth codes and uuid-->
+    <string name="disconnect_request_code">DISCONNECT</string>
 
 
 </resources>
