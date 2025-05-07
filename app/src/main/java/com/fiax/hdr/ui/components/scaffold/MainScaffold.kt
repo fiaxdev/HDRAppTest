@@ -73,7 +73,7 @@ fun MainScaffold(
     BluetoothPermissionHandler(
         context = context,
         onPermissionGranted = {
-            bluetoothManager.updatePermissions(context)
+            bluetoothManager.updatePermissions()
         }
     )
 

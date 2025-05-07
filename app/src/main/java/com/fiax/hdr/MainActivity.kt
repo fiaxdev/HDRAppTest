@@ -45,10 +45,18 @@ class MainActivity : ComponentActivity() {
         val enableBluetoothLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 // Handle the result from Bluetooth enable request
-                bluetoothCustomManager.handleActivityResult(result.resultCode)
+                bluetoothCustomManager.handleEnableActivityResult(result.resultCode)
             }
 
         bluetoothCustomManager.setEnableBluetoothLauncher(enableBluetoothLauncher)
+
+        val discoverableBluetoothLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                // Handle the result from Bluetooth enable request
+                bluetoothCustomManager.handleDiscoverableActivityResult(result.resultCode)
+            }
+
+        bluetoothCustomManager.setDiscoverableBluetoothLauncher(discoverableBluetoothLauncher)
 
         bluetoothCustomManager.initialize(lifecycleScope)
 
@@ -67,6 +75,7 @@ class MainActivity : ComponentActivity() {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
             addAction(BluetoothDevice.ACTION_FOUND)
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         }
         registerReceiver(bluetoothCustomManager.bluetoothReceiver, filter)
     }
@@ -74,7 +83,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(bluetoothCustomManager.bluetoothReceiver)
-        bluetoothCustomManager.stopServer()
+        bluetoothCustomManager.deinitialize()
         activityProvider.setActivity(null)
     }
 }

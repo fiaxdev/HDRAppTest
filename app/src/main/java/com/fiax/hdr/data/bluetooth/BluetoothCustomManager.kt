@@ -2,7 +2,6 @@ package com.fiax.hdr.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -26,6 +25,9 @@ import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,14 +42,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class BluetoothCustomManager @Inject constructor(
-    private val activityProvider: ActivityProvider
-){
+class BluetoothCustomManager @Inject constructor(){
 
     private val appContext = HDRApp.getAppContext()
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         appContext.getSystemService(BluetoothManager::class.java)?.adapter
     }
+
+    private val countdownScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _receivedPatients = MutableSharedFlow<Patient>()
     val receivedPatients: SharedFlow<Patient> = _receivedPatients
@@ -56,11 +58,19 @@ class BluetoothCustomManager @Inject constructor(
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
     private val disconnectCode = appContext.getString(R.string.disconnect_request_code)
 
-    private val _isServerOn = MutableStateFlow(false)
-    val isServerOn: StateFlow<Boolean> = _isServerOn
-
+    // ------------Discovery------------------
     private val _isDiscovering = MutableStateFlow(false)
     val isDiscovering: StateFlow<Boolean> = _isDiscovering
+
+    private val _remainingTime = MutableStateFlow<String?>(null)
+    val remainingTime: StateFlow<String?> = _remainingTime
+
+    private val _pairingResult = MutableStateFlow("")
+    val pairingResult: StateFlow<String> = _pairingResult
+
+    private var timerJob: Job? = null
+
+    private var discoverableUntil = 0L
 
     // ------------Devices------------------
     private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
@@ -70,14 +80,9 @@ class BluetoothCustomManager @Inject constructor(
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
 
     // ------------Sockets------------------
-    private val _connectionSocket = MutableStateFlow<BluetoothSocket?>(null)
-    val connectionSocket: StateFlow<BluetoothSocket?> = _connectionSocket
+    private val connectionSocket = MutableStateFlow<BluetoothSocket?>(null)
 
     private var serverSocket: BluetoothServerSocket? = null
-
-    // ----------------------Connection status----------------------
-    private var _connectionStatus = MutableStateFlow("")
-    val connectionStatus: StateFlow<String> = _connectionStatus
 
     // ---------------------Permissions----------------------
     private val _hasPermissions = MutableStateFlow(false)
@@ -94,40 +99,25 @@ class BluetoothCustomManager @Inject constructor(
     val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
-                    updateDiscoveryStatus(true)
-                }
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    updateDiscoveryStatus(false)
-                }
-                BluetoothDevice.ACTION_FOUND -> {
-                    val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                    else
-                        @Suppress("DEPRECATION")
-                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    device?.let {
-                        addDiscoveredDevice(it)
-                    }
-                }
-                BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                    when (state) {
-                        BluetoothAdapter.STATE_OFF -> {
-                            updateSnackbarMessage(appContext.getString(R.string.bluetooth_turning_off))
-                            deinitialize()
-                        }
-                        BluetoothAdapter.STATE_ON -> {
-                            initialize(CoroutineScope(Dispatchers.IO))
-                        }
-                    }
-                }
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> handleDiscoveryStarted()
+
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> handleDiscoveryFinished()
+
+                BluetoothDevice.ACTION_FOUND -> handleDeviceFound(intent)
+
+                BluetoothAdapter.ACTION_STATE_CHANGED -> handleBluetoothStateChanged(intent)
+
+                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> handleBondStateChanged(intent)
             }
         }
     }
 
     // Mutable reference to launcher set by the Activity
     private var enableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
+
+    private var discoverableBluetoothLauncher: ActivityResultLauncher<Intent>? = null
+
+    // -------------------Initialize and Deinitialize-------------------
 
     fun initialize(coroutineScope: CoroutineScope){
         ensureBluetoothEnabled(
@@ -145,19 +135,29 @@ class BluetoothCustomManager @Inject constructor(
         stopServer()
         emptyPairedDevices()
         emptyDiscoveredDevices()
+        updateDiscoveryStatus(false)
+        stopCountdown()
+        discoverableUntil = 0L
+        updateRemainingTime(null)
     }
 
-    // Setup
+    // -------------------Launchers setup--------------------------------------
     fun setEnableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
         enableBluetoothLauncher = launcher
     }
 
-    private fun updateServerStatus(isServerOn: Boolean) {
-        _isServerOn.value = isServerOn
+    fun setDiscoverableBluetoothLauncher(launcher: ActivityResultLauncher<Intent>) {
+        discoverableBluetoothLauncher = launcher
     }
+
+    // ------------------------State management------------------------------
 
     private fun updateDiscoveryStatus(isDiscovering: Boolean) {
         _isDiscovering.value = isDiscovering
+    }
+
+    private fun updateDiscoverabilityEndingTime(time: Int) {
+        discoverableUntil = System.currentTimeMillis() + (time * 1000)
     }
 
     private fun updateToastMessage(message: String){
@@ -168,16 +168,20 @@ class BluetoothCustomManager @Inject constructor(
         _snackbarMessage.value = message
     }
 
-    private fun updateConnectionStatus(connectionStatus: String) {
-        _connectionStatus.value = connectionStatus
-    }
-
     private fun setConnectionSocket(socket: BluetoothSocket?){
-        _connectionSocket.value = socket
+        connectionSocket.value = socket
     }
 
-    fun updatePermissions(context: Context) {
-        _hasPermissions.value = PermissionHelper.hasPermissions(context)
+    private fun updatePairingResult(result: String){
+        _pairingResult.value = result
+    }
+
+    private fun updateRemainingTime(remainingTime: String?){
+        _remainingTime.value = remainingTime
+    }
+
+    fun updatePermissions() {
+        _hasPermissions.value = PermissionHelper.hasPermissions()
     }
 
     @SuppressLint("MissingPermission")
@@ -204,6 +208,54 @@ class BluetoothCustomManager @Inject constructor(
             _discoveredDevices.value += device
     }
 
+    // -----------------------Receiver handlers----------------------------------
+
+    private fun handleDiscoveryStarted(){
+        updateDiscoveryStatus(true)
+    }
+
+    private fun handleDiscoveryFinished(){
+        updateDiscoveryStatus(false)
+    }
+
+    private fun handleDeviceFound(intent: Intent){
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+        else
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        device?.let {
+            addDiscoveredDevice(it)
+        }
+    }
+
+    private fun handleBluetoothStateChanged(intent: Intent){
+        val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+        when (state) {
+            BluetoothAdapter.STATE_OFF -> {
+                updateSnackbarMessage(appContext.getString(R.string.bluetooth_turning_off))
+                deinitialize()
+            }
+            BluetoothAdapter.STATE_ON -> {
+                initialize(CoroutineScope(Dispatchers.IO))
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun handleBondStateChanged(intent: Intent){
+        val device =
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+        val bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
+
+        if (bondState == BluetoothDevice.BOND_BONDED) {
+            updatePairingResult("Paired with ${device?.name}")
+        } else if (bondState == BluetoothDevice.BOND_NONE) {
+            updatePairingResult("Failed to pair with ${device?.name}")
+        }
+    }
+
     // Function to ensure Bluetooth is enabled, using the ActivityResultLauncher
     fun ensureBluetoothEnabled(
         onEnabled: () -> Unit,
@@ -215,7 +267,7 @@ class BluetoothCustomManager @Inject constructor(
             onNotSupported()
         } else {
 
-            if (PermissionHelper.hasPermissions(context = appContext)){
+            if (PermissionHelper.hasPermissions()){
                 launchIntentIfNotEnabled(
                     onEnabled = onEnabled,
                     onDenied = onDenied
@@ -230,14 +282,17 @@ class BluetoothCustomManager @Inject constructor(
         onDenied: () -> Unit = {updateToastMessage(appContext.getString(R.string.bluetooth_denied))},
     ) {
         if (!isBluetoothEnabled()) {
-            launchBluetoothIntent()
+            launchBluetoothIntent(
+                intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),
+                launcher = enableBluetoothLauncher!!
+            )
             // Save the callback to be used when the result is received
-            bluetoothEnableCallback = object : BluetoothEnableCallback {
-                override fun onBluetoothEnabled() {
+            bluetoothEnableCallback = object : BluetoothCallback {
+                override fun onEnabled() {
                     onEnabled()
                 }
 
-                override fun onBluetoothDenied() {
+                override fun onDenied() {
                     onDenied()
                 }
             }
@@ -245,28 +300,53 @@ class BluetoothCustomManager @Inject constructor(
             onEnabled()
     }
 
-    private fun launchBluetoothIntent(){
-        // Bluetooth is not enabled, request to enable it
-        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+    private fun launchBluetoothIntent(intent: Intent, launcher: ActivityResultLauncher<Intent>){
         // Launch the intent to enable Bluetooth
-        enableBluetoothLauncher!!.launch(enableBtIntent)
+        launcher.launch(intent)
     }
 
     // Handle the Bluetooth enable result in the Activity
-    fun handleActivityResult(resultCode: Int) {
+    fun handleEnableActivityResult(resultCode: Int) {
         if (resultCode == RESULT_OK) {
-            bluetoothEnableCallback?.onBluetoothEnabled()
+            bluetoothEnableCallback?.onEnabled()
         } else {
-            bluetoothEnableCallback?.onBluetoothDenied()
+            bluetoothEnableCallback?.onDenied()
         }
     }
 
-    interface BluetoothEnableCallback {
-        fun onBluetoothEnabled()
-        fun onBluetoothDenied()
+    fun handleDiscoverableActivityResult(resultCode: Int) {
+
+        Log.d("BluetoothDiscoverable", "handleDiscoverableActivityResult called with resultCode: $resultCode")
+
+        if (resultCode != BluetoothAdapter.STATE_CONNECTING && resultCode > 0) {
+            // User accepted and set discoverable duration
+            bluetoothDiscoverableCallback?.onEnabled()
+        } else {
+            // User canceled or denied
+            bluetoothDiscoverableCallback?.onDenied()
+        }
+
+        // Clear the callback so it doesn't persist longer than needed
+        bluetoothDiscoverableCallback = null
     }
 
-    private var bluetoothEnableCallback: BluetoothEnableCallback? = null
+    // Handle the Bluetooth enable result in the Activity
+//    fun handleDiscoverableActivityResult(resultCode: Int) {
+//        if (resultCode == RESULT_OK) {
+//            bluetoothDiscoverableCallback?.onEnabled()
+//        } else {
+//            bluetoothDiscoverableCallback?.onDenied()
+//        }
+//    }
+
+    interface BluetoothCallback {
+        fun onEnabled()
+        fun onDenied()
+    }
+
+    private var bluetoothEnableCallback: BluetoothCallback? = null
+
+    private var bluetoothDiscoverableCallback: BluetoothCallback? = null
 
     private fun isBluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled == true
@@ -312,7 +392,6 @@ class BluetoothCustomManager @Inject constructor(
                     )
                     serverSocket = server
 
-                    updateServerStatus(true)
                     // Accept client connection in the background (Blocking)
                     withContext(Dispatchers.IO) {
                         val socket = acceptClientConnection()
@@ -351,14 +430,13 @@ class BluetoothCustomManager @Inject constructor(
         try {
             // Close server socket
             closeServerSocket()
-            updateServerStatus(false)
         } catch (e: IOException) {
             e.printStackTrace()
         }
     }
 
     suspend fun connectToServer(device: BluetoothDevice): BluetoothSocket? {
-        if (!PermissionHelper.hasPermissions(context = appContext)) {
+        if (!PermissionHelper.hasPermissions()) {
             Log.e("BluetoothClient", "Missing Bluetooth permissions")
             return null
         }
@@ -392,9 +470,6 @@ class BluetoothCustomManager @Inject constructor(
                     Handler(Looper.getMainLooper()).postDelayed({
                         bluetoothAdapter?.startDiscovery()
                     }, 500)  // Delay of 500ms (half a second) to allow cancelDiscovery() to complete
-                    activityProvider.useActivity { activity ->
-                        makeDeviceDiscoverable(activity, 30)
-                    }
                 } else
                     bluetoothAdapter?.startDiscovery()
             }
@@ -442,7 +517,6 @@ class BluetoothCustomManager @Inject constructor(
         try {
             serverSocket?.close()
             serverSocket = null
-            updateServerStatus(false)
             setConnectionSocket(null)
         } catch (e: IOException) {
             Log.e("Bluetooth", "Error closing server socket: ${e.message}")
@@ -479,30 +553,8 @@ class BluetoothCustomManager @Inject constructor(
             }
         } catch (e: IOException) {
             Log.e("Bluetooth", "Connection lost: ${e.message}")
-            updateConnectionStatus(appContext.getString(R.string.bluetooth_connection_lost)) // Notify ViewModel when connection is lost
         }
     }
-
-//    private suspend fun listenForPatients(inputStream: InputStream) {
-//        val buffer = ByteArray(2048) // adjust size as needed
-//
-//        while (true) {
-//            val bytesRead =
-//                withContext(Dispatchers.IO) {
-//                    inputStream.read(buffer)
-//                }
-//            if (bytesRead > 0) {
-//                val data = buffer.copyOfRange(0, bytesRead)
-//
-//                try {
-//                    val patient = PatientSerializer.deserialize(data)
-//                    _receivedPatients.emit(patient) // emit the Patient
-//                } catch (e: Exception) {
-//                    Log.e("BluetoothCustomManager", "Error deserializing patient", e)
-//                }
-//            }
-//        }
-//    }
 
     private fun restartServer(){
         stopServer()
@@ -529,11 +581,93 @@ class BluetoothCustomManager @Inject constructor(
         sendData(jsonEnvelope)
     }
 
-    fun makeDeviceDiscoverable(activity: Activity, duration: Int = 60) {
-        val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration)
+    fun makeDeviceDiscoverable(duration: Int) {
+        ensureBluetoothEnabled(
+            onEnabled = {
+                val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration)
+                }
+                launchBluetoothIntent(discoverableIntent, discoverableBluetoothLauncher!!)
+                bluetoothDiscoverableCallback = object : BluetoothCallback {
+                    override fun onEnabled() {
+                        Log.d("BluetoothDiscoverable", "onEnabled")
+                        updateDiscoverabilityEndingTime(duration)
+                        startCountdown()
+                    }
+
+                    override fun onDenied() {
+                        Log.d("BluetoothDiscoverable", "onDenied")
+                    }
+                }
+            }
+        )
+//        activity.startActivity(discoverableIntent)
+    }
+
+//    fun makeDeviceDiscoverableWithActivity(duration: Int = 60){
+//        activityProvider.useActivity { activity ->
+//            makeDeviceDiscoverable(activity, duration)
+//        }
+//        updateDiscoverabilityEndingTime(duration)
+//        startCountdown()
+//
+//    }
+
+    private fun startCountdown() {
+        stopCountdown()
+        timerJob = countdownScope.launch(Dispatchers.Main) {
+            while (true) {
+                val remainingMillis = discoverableUntil - System.currentTimeMillis()
+                if (remainingMillis <= 0) {
+                    updateRemainingTime(null)
+                    break
+                }
+                val seconds = (remainingMillis / 1000).toInt()
+                val minutesPart = seconds / 60
+                val secondsPart = seconds % 60
+                val formatted = "$minutesPart:${secondsPart.toString().padStart(2, '0')}"
+                updateRemainingTime(formatted)
+                Log.d("BluetoothCountdown", "Countdown: $formatted")
+
+                delay(1000)
+            }
         }
-        activity.startActivity(discoverableIntent)
+    }
+
+    private fun stopCountdown() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getThisDeviceName(): String? {
+        if (isBluetoothSupported())
+            if (PermissionHelper.hasPermissions())
+                return bluetoothAdapter?.name
+        return null
+    }
+
+    @SuppressLint("MissingPermission")
+    fun pairWithDevice(device: BluetoothDevice): Boolean {
+
+        var enabled = false
+
+        ensureBluetoothEnabled(
+            onEnabled = { enabled = true}
+        )
+        return if (enabled){
+            try {
+                updatePairingResult("Pairing with ${device.name}...")
+                val method = device.javaClass.getMethod("createBond")
+                val result = method.invoke(device) as Boolean
+                if (!result)
+                    updateToastMessage("Failed to pair with ${device.name}")
+                result
+            } catch (e: Exception) {
+                false
+            }
+        } else
+            false
     }
 
     private fun isBluetoothSupported(): Boolean{

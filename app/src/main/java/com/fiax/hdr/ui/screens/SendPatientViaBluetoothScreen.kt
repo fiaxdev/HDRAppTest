@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -20,10 +21,11 @@ import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.ui.components.patients.PatientItem
 import com.fiax.hdr.ui.components.util.BottomButtons
-import com.fiax.hdr.ui.components.util.CenteredText
+import com.fiax.hdr.ui.components.util.CenteredTextInBox
 import com.fiax.hdr.ui.components.util.FadeOverlay
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.ui.components.util.circularprogressindicator.CustomCircularProgressIndicator
+import com.fiax.hdr.ui.navigation.Screen
 import com.fiax.hdr.utils.Resource
 import com.fiax.hdr.viewmodel.SendPatientViaBluetoothViewModel
 
@@ -37,12 +39,6 @@ fun SendPatientViaBluetoothScreen(
     val sendPatientViaBluetoothViewModel: SendPatientViaBluetoothViewModel = hiltViewModel()
 
     val pairedDevices = sendPatientViaBluetoothViewModel.pairedDevices.collectAsState()
-
-    val discoveredDevices = sendPatientViaBluetoothViewModel.discoveredDevices.collectAsState()
-
-    val connectionSocket = sendPatientViaBluetoothViewModel.connectionSocket.collectAsState()
-
-    val isDiscovering = sendPatientViaBluetoothViewModel.isDiscovering.collectAsState()
 
     Column(
         verticalArrangement = Arrangement.Top,
@@ -86,20 +82,18 @@ fun SendPatientViaBluetoothScreen(
                     TitleText("Select the receiver", Modifier.padding(horizontal = 16.dp))
 
                     DeviceList(
-                        pairedDevices = pairedDevices.value,
-                        discoveredDevices = discoveredDevices.value,
-                        connectionSocket = connectionSocket.value,
+                        devices = pairedDevices.value,
+                        devicesType = "Paired Devices",
                         onClick = {
                             sendPatientViaBluetoothViewModel.sendPatient(patient, it)
                         },
-                        isDiscovering = isDiscovering.value,
-                        onScanButtonClick = {
-                            if (!isDiscovering.value)
-                                sendPatientViaBluetoothViewModel.startScan()
-                            else
-                                sendPatientViaBluetoothViewModel.stopScan()
-                        }
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = { navController.navigate(Screen.PairDevice.route) }
+                    ){ Text("Need to pair a new device?") }
                 }
             }
 
@@ -119,8 +113,8 @@ fun SendPatientViaBluetoothScreen(
             ){
                 sendPatientViaBluetoothViewModel.sendPatientResult.collectAsState().value.let {
                     when (it) {
-                        is Resource.Success -> CenteredText("Patient sent successfully, tap another device to send the same patient to that device")
-                        is Resource.Error -> CenteredText(it.message ?: "Error sending patient")
+                        is Resource.Success -> CenteredTextInBox("Patient sent successfully, tap another device to send the same patient to that device")
+                        is Resource.Error -> CenteredTextInBox(it.message ?: "Error sending patient")
                         is Resource.Loading<*> -> CustomCircularProgressIndicator()
                         is Resource.None<*> -> {}
                     }

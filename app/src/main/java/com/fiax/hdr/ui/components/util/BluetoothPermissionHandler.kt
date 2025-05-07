@@ -135,7 +135,7 @@ fun NoPermissionMessage(
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             if (results.all { it.value }) {
-                bluetoothManager.updatePermissions(context)
+                bluetoothManager.updatePermissions()
             } else {
                 showSettingsDialog = true
             }

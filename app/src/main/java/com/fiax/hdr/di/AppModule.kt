@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.fiax.hdr.data.bluetooth.ActivityProvider
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.HDRDatabase
 import com.fiax.hdr.data.local.RoomDataSource
@@ -60,8 +59,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideBluetoothCustomManager(activityProvider: ActivityProvider): BluetoothCustomManager {
-        return BluetoothCustomManager(activityProvider)
+    fun provideBluetoothCustomManager(): BluetoothCustomManager {
+        return BluetoothCustomManager()
     }
 
     @Provides

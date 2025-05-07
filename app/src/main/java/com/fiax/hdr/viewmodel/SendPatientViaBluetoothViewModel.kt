@@ -15,32 +15,22 @@ import javax.inject.Inject
 @HiltViewModel
 class SendPatientViaBluetoothViewModel @Inject constructor(
     private val useCase: SendPatientViaBluetoothUseCase,
-    private val bluetoothCustomManager: BluetoothCustomManager
+    bluetoothCustomManager: BluetoothCustomManager
 ) : ViewModel(){
 
     val pairedDevices = bluetoothCustomManager.pairedDevices
 
-    val discoveredDevices = bluetoothCustomManager.discoveredDevices
-
-    val connectionSocket = bluetoothCustomManager.connectionSocket
-
-    val isDiscovering = bluetoothCustomManager.isDiscovering
-
     private val _sendPatientResult = MutableStateFlow<Resource<Unit>>(Resource.None())
     val sendPatientResult: MutableStateFlow<Resource<Unit>> = _sendPatientResult
+
+    init {
+        bluetoothCustomManager.fetchPairedDevices()
+    }
 
     fun sendPatient(patient: Patient, device: BluetoothDevice) {
         viewModelScope.launch {
             _sendPatientResult.value = Resource.Loading()
             _sendPatientResult.value = useCase(patient, device)
         }
-    }
-
-    fun startScan() {
-        bluetoothCustomManager.startDiscovery()
-    }
-
-    fun stopScan(){
-        bluetoothCustomManager.stopDiscovery()
     }
 }

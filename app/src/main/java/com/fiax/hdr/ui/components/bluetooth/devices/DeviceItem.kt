@@ -2,7 +2,6 @@ package com.fiax.hdr.ui.components.bluetooth.devices
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothSocket
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,15 +17,14 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 @SuppressLint("MissingPermission")
-fun DeviceItem(device: BluetoothDevice, connectionSocket: BluetoothSocket?, onClick: () -> Unit) {
+fun DeviceItem(device: BluetoothDevice, onClick: (BluetoothDevice) -> Unit) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable { onClick(device) },
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RectangleShape,
-        //colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -40,12 +38,6 @@ fun DeviceItem(device: BluetoothDevice, connectionSocket: BluetoothSocket?, onCl
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-//            if (connectionSocket.value?.remoteDevice?.address == device.address)
-//                Text(
-//                    text = "Connected",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    modifier = Modifier.padding(horizontal = 8.dp)
-//                )
         }
     }
 

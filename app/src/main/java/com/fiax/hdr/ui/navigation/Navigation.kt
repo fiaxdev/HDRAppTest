@@ -1,6 +1,5 @@
 package com.fiax.hdr.ui.navigation
 
-import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -10,17 +9,17 @@ import androidx.navigation.compose.composable
 import com.fiax.hdr.R
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.screens.AddPatientScreen
-import com.fiax.hdr.ui.screens.BluetoothScreen
 import com.fiax.hdr.ui.screens.HomeScreen
+import com.fiax.hdr.ui.screens.PairNewDeviceScreen
 import com.fiax.hdr.ui.screens.PatientDetailsScreen
 import com.fiax.hdr.ui.screens.SendPatientViaBluetoothScreen
 
-sealed class Screen(val route: String, @StringRes val routeId: Int) {
-    data object Home : Screen("home", R.string.nav_home)
-    data object AddPatient : Screen("add_patient", R.string.nav_add_patient)
-    data object Bluetooth : Screen("bluetooth", R.string.nav_bluetooth)
-    data object SendPatient : Screen("send_patient", R.string.nav_send_patient)
-    data object PatientDetails : Screen("patient_details", R.string.nav_patient_details)
+sealed class Screen(val route: String) {
+    data object Home : Screen("home")
+    data object AddPatient : Screen("add_patient")
+    data object SendPatient : Screen("send_patient")
+    data object PairDevice : Screen("pair_device")
+    data object PatientDetails : Screen("patient_details")
 }
 
 @Composable
@@ -39,8 +38,6 @@ fun AppNavigation(
 
         composable(Screen.AddPatient.route){ AddPatientScreen(navController) }
 
-        composable(Screen.Bluetooth.route){ BluetoothScreen(navController) }
-
         composable(Screen.SendPatient.route){
             // Get the patient from SavedStateHandle
             val patient = navController
@@ -55,6 +52,8 @@ fun AppNavigation(
                 )
             }
         }
+
+        composable(Screen.PairDevice.route){ PairNewDeviceScreen(navController) }
 
         composable(Screen.PatientDetails.route){
             // Get the patient from SavedStateHandle

@@ -11,6 +11,12 @@ import androidx.core.content.ContextCompat
  */
 object PermissionHelper {
 
+    private lateinit var appContext: Context
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
+
     /**
      * Returns the required Bluetooth permissions based on API level.
      * Uses BLUETOOTH and BLUETOOTH_ADMIN for API < 31.
@@ -32,9 +38,9 @@ object PermissionHelper {
     /**
      * Checks if all required Bluetooth permissions are granted.
      */
-    fun hasPermissions(context: Context): Boolean {
+    fun hasPermissions(): Boolean {
         return getRequiredPermissions().all {
-            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(appContext, it) == PackageManager.PERMISSION_GRANTED
         }
     }
 }
