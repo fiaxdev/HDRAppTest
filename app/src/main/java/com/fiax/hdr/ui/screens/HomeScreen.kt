@@ -38,27 +38,6 @@ fun HomeScreen(
 
     val receivedPatients = homeScreenViewModel.receivedPatients.collectAsState(null)
 
-//    LaunchedEffect(key1 = true) {
-//        homeScreenViewModel.uiEvent.collect { event ->
-//            when (event) {
-//                is UiEvent.ShowToast -> {
-//                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-//                }
-//                is UiEvent.ShowSnackbar -> {
-//                    snackbarHostState.showSnackbar(event.message)
-//                }
-//            }
-//        }
-//    }
-
-//    LaunchedEffect(key1 = uiText.value){
-//        if (enablerResult.value.isNotEmpty()){
-//            homeScreenViewModel.setUiText(enablerResult.value)
-//            homeScreenViewModel.sendSnackBar()
-//            homeScreenViewModel.clearUiText()
-//        }
-//    }
-
     Box (
         modifier = Modifier.fillMaxSize()
     ){
@@ -67,7 +46,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            RecentlyReceivedPatientList(receivedPatients, navController)
+            RecentlyReceivedPatientList(receivedPatients.value, navController)
 
             when (patients.value) {
                 is Resource.Error<*> -> {

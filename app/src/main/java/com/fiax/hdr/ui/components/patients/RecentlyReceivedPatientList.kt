@@ -1,20 +1,21 @@
 package com.fiax.hdr.ui.components.patients
 
+import android.util.Log
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.navigation.NavController
 import com.fiax.hdr.data.model.Patient
 
 @Composable
 fun RecentlyReceivedPatientList(
-    patient: State<Patient?>,
+    patients: List<Patient>?,
     navController: NavController
 ){
-    if (patient.value != null) {
+    if (patients != null) {
         PatientList(
-            patients = listOf(patient.value!!),
+            patients = patients,
             navController = navController,
             title = "Recently Received Patients"
         )
-    }
+    } else
+        Log.d("RecentlyReceivedPatientList", "Patients are null")
 }

@@ -24,6 +24,7 @@ fun PatientList(
     navController: NavController,
     modifier: Modifier = Modifier,
     title: String = "Patient List",
+    onItemClick: (Patient) -> Unit = {}
 ) {
     Column (
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -40,7 +41,7 @@ fun PatientList(
                 contentPadding = PaddingValues(vertical = 2.dp),
                 content = {
                     items(patients) { patient ->
-                        PatientItem(patient, navController)
+                        PatientItem(patient, navController, onClick = onItemClick)
                     }
                     item { Spacer(modifier.height(64.dp)) }
                 }

@@ -16,12 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.fiax.hdr.R
 import com.fiax.hdr.data.model.Patient
 import com.fiax.hdr.ui.components.util.TitleText
+import com.fiax.hdr.ui.navigation.Screen
 
 @Composable
 fun PatientItem(
@@ -29,13 +28,13 @@ fun PatientItem(
     navController: NavController,
     modifier: Modifier = Modifier,
     hideBluetoothButton: Boolean = false,
-    onClick: () -> Unit = {}
+    onClick: (Patient) -> Unit = {}
 ){
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium,
         modifier = modifier
-            .clickable(onClick = onClick)
+            .clickable { onClick(patient) }
             .padding(vertical = 2.dp)
     ){
         Row(
@@ -61,7 +60,7 @@ fun PatientItem(
 @Composable
 fun BluetoothButton(patient: Patient, navController: NavController) {
 
-    val route = stringResource(R.string.nav_send_patient)
+    val route = Screen.SendPatient.route
 
     IconButton(
         onClick = {
