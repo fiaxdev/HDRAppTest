@@ -28,7 +28,6 @@ import androidx.navigation.NavController
 import com.fiax.hdr.ui.components.bluetooth.devices.DeviceList
 import com.fiax.hdr.ui.components.util.BottomButtons
 import com.fiax.hdr.ui.components.util.CenteredText
-import com.fiax.hdr.ui.components.util.FadeOverlay
 import com.fiax.hdr.ui.components.util.circularprogressindicator.SmallCircularProgressIndicator
 import com.fiax.hdr.viewmodel.PairNewDeviceScreenViewModel
 
@@ -140,17 +139,12 @@ fun PairNewDeviceScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
-            Box(
+            DeviceList(
+                devices = discoveredDevices,
+                devicesType = "Discovered Devices",
+                onClick = { pairNewDeviceScreenViewModel.pairDevice(it) },
                 modifier = Modifier.weight(1f)
-            ){
-                DeviceList(
-                    devices = discoveredDevices,
-                    devicesType = "Discovered Devices",
-                    onClick = { pairNewDeviceScreenViewModel.pairDevice(it) },
-                )
-
-                FadeOverlay(Modifier.align(Alignment.BottomCenter))
-            }
+            )
         }
 
         BottomButtons(

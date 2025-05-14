@@ -4,7 +4,7 @@ import android.os.Parcelable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.ui.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel

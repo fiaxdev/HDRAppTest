@@ -18,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.ui.components.util.TitleText
 import com.fiax.hdr.ui.navigation.Screen
 

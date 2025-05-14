@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 
 @Composable
 fun PatientDetailsScreen(patient: Patient, navController: NavHostController) {
@@ -12,14 +12,14 @@ fun PatientDetailsScreen(patient: Patient, navController: NavHostController) {
     Column {
         Text("ID: ${patient.id}")
         Text("Name: ${patient.name}")
-        Text("Surname: ${patient.age}")
-        Text("Address: ${patient.sex}")
-        Text("City: ${patient.village}")
-        Text("Phone: ${patient.parish}")
-        Text("Email: ${patient.subCounty}")
-        Text("Birth Date: ${patient.district}")
-        Text("Gender: ${patient.nextOfKin}")
-        Text("Gender: ${patient.contact}")
+        Text("Age: ${patient.age}")
+        Text("Sex: ${patient.sex}")
+        Text("Village: ${patient.village}")
+        Text("Parish: ${patient.parish}")
+        Text("SubCounty: ${patient.subCounty}")
+        Text("District: ${patient.district}")
+        Text("Next of Kin: ${patient.nextOfKin}")
+        Text("Contact: ${patient.contact}")
     }
 
 }

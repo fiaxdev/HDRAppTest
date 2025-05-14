@@ -21,13 +21,12 @@ import androidx.core.content.ContextCompat
 import com.fiax.hdr.HDRApp
 import com.fiax.hdr.R
 import com.fiax.hdr.data.mapper.PatientSerializer
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.utils.PermissionHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,9 +54,6 @@ class BluetoothCustomManager @Inject constructor(){
         appContext.getSystemService(BluetoothManager::class.java)?.adapter
     }
 
-    private val countdownScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _receivedPatients = MutableSharedFlow<Patient>(
         replay = 0,
@@ -70,6 +66,12 @@ class BluetoothCustomManager @Inject constructor(){
     private val appUuid = UUID.fromString(appContext.getString(R.string.app_uuid))
     private val disconnectCode = appContext.getString(R.string.disconnect_request_code)
 
+    // ------------Server---------------------
+
+    private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var serverJob: Job? = null
+
     // ------------Discovery------------------
     private val _isDiscovering = MutableStateFlow(false)
     val isDiscovering: StateFlow<Boolean> = _isDiscovering
@@ -79,6 +81,8 @@ class BluetoothCustomManager @Inject constructor(){
 
     private val _pairingResult = MutableStateFlow("")
     val pairingResult: StateFlow<String> = _pairingResult
+
+    private val countdownScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var timerJob: Job? = null
 
@@ -131,12 +135,12 @@ class BluetoothCustomManager @Inject constructor(){
 
     // -------------------Initialize and Deinitialize-------------------
 
-    fun initialize(coroutineScope: CoroutineScope){
+    fun initialize(){
         Log.d("BluetoothServer", "Initializing")
         ensureBluetoothEnabled(
             onEnabled = {
                 fetchPairedDevices()
-                coroutineScope.launch { startServer() }
+                attemptStartServer()
             },
             onDenied = {
                 updateToastMessage(appContext.getString(R.string.bluetooth_server_not_started))
@@ -152,7 +156,8 @@ class BluetoothCustomManager @Inject constructor(){
         stopCountdown()
         discoverableUntil = 0L
         updateRemainingTime(null)
-        serverScope.cancel()
+        serverJob?.cancel()
+        serverJob = null
     }
 
     // -------------------Launchers setup--------------------------------------
@@ -251,7 +256,7 @@ class BluetoothCustomManager @Inject constructor(){
                 deinitialize()
             }
             BluetoothAdapter.STATE_ON -> {
-                initialize(serverScope)
+                initialize()
             }
         }
     }
@@ -368,8 +373,9 @@ class BluetoothCustomManager @Inject constructor(){
 
     // ---------------Connection------------------------
 
-    private fun attemptStartServer(coroutineScope: CoroutineScope) {
-        coroutineScope.launch {
+    private fun attemptStartServer() {
+        serverJob?.cancel()
+        serverJob = serverScope.launch {
             startServer()
         }
     }
@@ -553,34 +559,34 @@ class BluetoothCustomManager @Inject constructor(){
     private suspend fun restartServer(){
         stopServer()
         delay(1000)
-        attemptStartServer(serverScope)
+        attemptStartServer()
     }
 
-    suspend fun disconnect(){
-        try {// Send a disconnect message
+//    suspend fun disconnect(){
+//        try {// Send a disconnect message
+//
+//            Log.d("BluetoothClient", "Sending disconnection code")
+//            sendDisconnectionRequest()
+//            Log.d("BluetoothClient", "Flushing stream")
+//            connectionSocket.value?.outputStream?.flush()
+//            Log.d("BluetoothClient", "Sleeping...")
+//            delay(5000)
+//            Log.d("BluetoothClient", "Closing socket")
+//            closeConnectionSocket()
+//        } catch (e: Exception){
+//            Log.e("Bluetooth", "Error disconnecting: ${e.message}")
+//        }
+//    }
 
-            Log.d("BluetoothClient", "Sending disconnection code")
-            sendDisconnectionRequest()
-            Log.d("BluetoothClient", "Flushing stream")
-            connectionSocket.value?.outputStream?.flush()
-            Log.d("BluetoothClient", "Sleeping...")
-            delay(5000)
-            Log.d("BluetoothClient", "Closing socket")
-            closeConnectionSocket()
-        } catch (e: Exception){
-            Log.e("Bluetooth", "Error disconnecting: ${e.message}")
-        }
-    }
-
-    private fun sendDisconnectionRequest(){
-        val commandBytes = disconnectCode.toByteArray(Charsets.UTF_8)
-        val envelope = BluetoothEnvelope(
-            type = "code",
-            payload = commandBytes
-        )
-        val jsonEnvelope = Json.encodeToString(BluetoothEnvelope.serializer(), envelope)
-        sendData(jsonEnvelope)
-    }
+//    private fun sendDisconnectionRequest(){
+//        val commandBytes = disconnectCode.toByteArray(Charsets.UTF_8)
+//        val envelope = BluetoothEnvelope(
+//            type = "code",
+//            payload = commandBytes
+//        )
+//        val jsonEnvelope = Json.encodeToString(BluetoothEnvelope.serializer(), envelope)
+//        sendData(jsonEnvelope)
+//    }
 
     // ------------------Discovery-----------------------
 
@@ -685,6 +691,7 @@ class BluetoothCustomManager @Inject constructor(){
                     updateToastMessage("Failed to pair with ${device.name}")
                 result
             } catch (e: Exception) {
+                Log.e("BluetoothClient", "Error creating bond: ${e.message}")
                 false
             }
         } else

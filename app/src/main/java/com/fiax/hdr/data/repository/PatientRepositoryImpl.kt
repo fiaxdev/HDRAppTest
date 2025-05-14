@@ -3,16 +3,20 @@ package com.fiax.hdr.data.repository
 import android.util.Log
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
 import com.fiax.hdr.data.local.RoomDataSource
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.data.mapper.toEntity
+import com.fiax.hdr.data.mapper.toPatient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.utils.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
@@ -25,12 +29,8 @@ class PatientRepositoryImpl @Inject constructor(
     private val applicationScope: CoroutineScope
 ) : PatientRepository {
 
-    private val _receivedPatients = MutableSharedFlow<List<Patient>>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    override val receivedPatients: SharedFlow<List<Patient>> = _receivedPatients.asSharedFlow()
+    private val _receivedPatients = MutableStateFlow<List<Patient>>(emptyList())
+    override val receivedPatients: StateFlow<List<Patient>> = _receivedPatients.asStateFlow()
 
     private val _newPatientEvents = MutableSharedFlow<Patient>()
     override val newPatientEvents: SharedFlow<Patient> = _newPatientEvents.asSharedFlow()
@@ -66,7 +66,7 @@ class PatientRepositoryImpl @Inject constructor(
 
     override suspend fun addPatient(patient: Patient): Resource<Unit> {
         return try {
-            roomDataSource.insertPatient(patient)
+            roomDataSource.insertPatient(patient.toEntity())
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "An error occurred")
@@ -84,7 +84,7 @@ class PatientRepositoryImpl @Inject constructor(
     override fun getPatients(): Flow<Resource<List<Patient>>> = flow {
         emit(Resource.Loading())
         roomDataSource.getPatients().collect {
-            emit(Resource.Success(it.asReversed()))
+            emit(Resource.Success(it.asReversed().map { entity -> entity.toPatient() }))
         }
     }.catch { e ->
         emit(Resource.Error(e.localizedMessage ?: "Unknown error occurred"))

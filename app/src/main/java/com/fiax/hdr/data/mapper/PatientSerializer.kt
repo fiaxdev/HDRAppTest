@@ -1,7 +1,7 @@
 package com.fiax.hdr.data.mapper
 
 import android.util.Log
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import java.nio.ByteBuffer
 
 object PatientSerializer {

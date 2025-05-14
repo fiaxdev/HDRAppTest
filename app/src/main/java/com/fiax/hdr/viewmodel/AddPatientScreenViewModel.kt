@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.model.FormErrors
 import com.fiax.hdr.data.model.FormState
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel

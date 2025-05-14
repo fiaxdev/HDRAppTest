@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fiax.hdr.data.bluetooth.BluetoothCustomManager
-import com.fiax.hdr.data.model.Patient
+import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.usecase.SendPatientViaBluetoothUseCase
 import com.fiax.hdr.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,5 +32,9 @@ class SendPatientViaBluetoothViewModel @Inject constructor(
             _sendPatientResult.value = Resource.Loading()
             _sendPatientResult.value = useCase(patient, device)
         }
+    }
+
+    fun resetSendPatientResult(){
+        _sendPatientResult.value = Resource.None()
     }
 }
