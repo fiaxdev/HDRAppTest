@@ -57,8 +57,6 @@ class MainActivity : ComponentActivity() {
 
         bluetoothCustomManager.setDiscoverableBluetoothLauncher(discoverableBluetoothLauncher)
 
-        bluetoothCustomManager.initialize()
-
         enableEdgeToEdge()
 
         setContent {

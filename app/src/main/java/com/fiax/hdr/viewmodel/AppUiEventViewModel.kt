@@ -8,8 +8,6 @@ import com.fiax.hdr.domain.model.Patient
 import com.fiax.hdr.domain.repository.PatientRepository
 import com.fiax.hdr.ui.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -58,7 +56,7 @@ class AppUiEventViewModel @Inject constructor(
                     message = "New patient received",
                     actionLabel = "View",
                     onActionClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
+                        viewModelScope.launch {
                             emitNavigateToPatient(patient)
                         }
                     }

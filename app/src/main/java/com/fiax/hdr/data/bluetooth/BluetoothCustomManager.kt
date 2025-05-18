@@ -400,9 +400,7 @@ class BluetoothCustomManager @Inject constructor(){
                     serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(appName, appUuid)
                     Log.d("BluetoothServer", "Server started, waiting for client...")
                     delay(1000)
-                    val socket = withContext(Dispatchers.IO) {
-                        acceptClientConnection()
-                    }
+                    val socket = acceptClientConnection()
 
                     if (socket != null) {
                         listenForData(socket) // Pass the new socket explicitly
